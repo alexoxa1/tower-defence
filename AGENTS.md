@@ -5,7 +5,7 @@ Citadel Watch is a Vite + React + TypeScript + Three.js arcade tower defense. Pr
 ## Orient
 
 1. Read `CONTEXT.md` for domain terms. Done when you use those names instead of the avoid list.
-2. Orient in code with Graphify before Grep or Read: `graphify query`, `graphify path`, `graphify explain`. Hubs are `advanceWatch`, `GameEngine`, `WorldRenderer`, and `GameState`. Refresh with `npm run graphify:update`. Done when you can name the module that owns the change.
+2. Orient in code with Graphify before Grep or Read: `graphify query`, `graphify path`, `graphify explain`. Hubs are `advanceWatch`, `GameEngine`, `WorldRenderer`, and `GameState`. Refresh with `bun run graphify:update`. Done when you can name the module that owns the change.
 3. Read this file and `docs/ARCHITECTURE.md` for the module map. Decisions live in `docs/adr/0001`, `0002`, and `0003`. Done when you know which seam you are crossing and whether the work is simulation, HUD, or the 3D view.
 
 ## Where code lives
@@ -21,9 +21,9 @@ Visual work starts at `DESIGN.md` and `src/styles/tokens.css`. Economy, Waves, a
 ## Commands
 
 ```bash
-npm install
-npm run dev
-npm run test
-npm run build
-npm run graphify:update
+bun install
+bun run dev
+bun run test
+bun run build
+bun run graphify:update
 ```

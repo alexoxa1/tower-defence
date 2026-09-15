@@ -38,7 +38,7 @@ Use Read/Grep/Glob only after Graphify has named the files and symbols, or if `g
 After you change code, refresh the graph (AST-only, no API key):
 
 ```
-npm run graphify:update
+bun run graphify:update
 ```
 
 or `graphify update .`. Full rebuild without LLM: `graphify extract . --code-only`. Then `graphify cluster-only . --no-label` if `GRAPH_REPORT.md` is stale.

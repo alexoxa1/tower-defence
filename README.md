@@ -5,14 +5,14 @@ Arcade tower defense. A Watch defends the citadel. Enemies walk the Road from In
 ## Run
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Production build:
 
 ```bash
-npm run build
+bun run build
 ```
 
 Product look is in `DESIGN.md`.
