@@ -7,7 +7,7 @@ function statusLabel(snapshot: UiSnapshot): string {
   if (snapshot.gameOver) return "RIFT";
   if (snapshot.paused) return "PAUSED";
   if (snapshot.waveActive) return "WAVE";
-  return "READY";
+  return snapshot.wave === 0 ? "HOLD" : "NEXT";
 }
 
 function statusAction(snapshot: UiSnapshot): string {
@@ -137,9 +137,9 @@ export function Header({
           How to play
         </h2>
         <p className="help-copy">
-          Click the map to build. Drag towers to move. Click ↑ to upgrade.
-          Drag the empty ground to pan. Click a battery in the Armory to build,
-          or press <kbd>4</kbd> for Scout. Scroll to zoom.{" "}
+          Click the board to place a tower. Drag a placed tower to move it. Click
+          ↑ to upgrade. Drag empty ground to pan. Pick a tower in the Armory, or
+          press <kbd>4</kbd> for Scout. Scroll to zoom.{" "}
           <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>

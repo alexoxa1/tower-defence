@@ -79,7 +79,7 @@ export class GameEngine {
 
     this.setupCanvas();
     this.emitSnapshot();
-    this.showToast("Scout mode: drag the map. Pick a battery to build.");
+    this.showToast("Scout: drag the board. Pick a tower in the Armory to build.");
   }
 
   start(): void {
@@ -157,7 +157,7 @@ export class GameEngine {
   private resetGame(): void {
     resetState(this.state);
     this.emitSnapshot();
-    this.showToast("New game started. Build a tower, then start the wave.");
+    this.showToast("New Watch. Place a tower, then start the Wave.");
   }
 
   private selectBuildType(type: TowerType | null): void {
@@ -404,7 +404,6 @@ export class GameEngine {
     const frozen = this.state.paused || this.state.gameOver;
     const dt = frozen ? rawDt : rawDt * this.state.speed;
     advanceWatch(this.state, dt, this.ports, { frozen });
-    refreshPreview(this.state);
 
     this.world.sync(this.state);
     this.world.render();

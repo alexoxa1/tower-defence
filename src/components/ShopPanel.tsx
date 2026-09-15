@@ -20,7 +20,7 @@ export function ShopPanel({
         type="button"
         className={`tower-card${scouting ? " selected" : ""}`}
         aria-pressed={scouting}
-        aria-label="Scout mode. Drag the map. Key 4"
+        aria-label="Scout. Drag the board. Key 4"
         onClick={() => actions?.selectBuildType(null)}
       >
         <span className="swatch scout-swatch" aria-hidden="true">

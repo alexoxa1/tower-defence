@@ -12,7 +12,7 @@ export function ControlsPanel({
   return (
     <section className="speed-panel" aria-label="Speed">
       <p className="section-title">Speed</p>
-      <div className="speed-row" role="group" aria-label="Game speed">
+      <div className="speed-row" role="group" aria-label="Watch speed">
         {SPEED_OPTIONS.map((speed) => (
           <button
             key={speed}

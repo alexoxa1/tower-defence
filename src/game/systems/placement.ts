@@ -46,7 +46,7 @@ export function validatePlacement(
     point.x > LOGICAL_WIDTH - 24 ||
     point.y > LOGICAL_HEIGHT - 24
   ) {
-    return { ok: false, reason: "Build inside the map." };
+    return { ok: false, reason: "Build on the board." };
   }
 
   if (!options?.skipGoldCheck && state.gold < config.cost) {
@@ -83,7 +83,7 @@ export function buildTower(
   ports: WatchPorts,
 ): { ok: boolean } {
   if (!state.selectedBuildType) {
-    ports.notify("Select a battery in the Armory, or drag to pan.");
+    ports.notify("Pick a tower in the Armory, or drag to pan.");
     return { ok: false };
   }
   const validation = validatePlacement(state, point, state.selectedBuildType);

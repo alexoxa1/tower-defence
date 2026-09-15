@@ -29,20 +29,21 @@ function seeded(seed: number): () => number {
 function makeLabelTexture(text: string, color: string): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
-  canvas.height = 64;
+  canvas.height = 80;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.clearRect(0, 0, 256, 64);
-    ctx.font = "700 28px Syne, sans-serif";
+    ctx.clearRect(0, 0, 256, 80);
+    ctx.font = "800 44px Syne, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.strokeStyle = "rgba(8, 8, 8, 0.85)";
-    ctx.lineWidth = 6;
-    ctx.strokeText(text, 128, 32);
+    ctx.strokeStyle = "rgba(8, 8, 8, 0.9)";
+    ctx.lineWidth = 8;
+    ctx.strokeText(text, 128, 42);
     ctx.fillStyle = color;
-    ctx.fillText(text, 128, 32);
+    ctx.fillText(text, 128, 42);
   }
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
 }
@@ -682,10 +683,13 @@ export class WorldRenderer implements BoardHitTest {
         new THREE.SpriteMaterial({
           transparent: true,
           depthTest: false,
+          depthWrite: false,
           sizeAttenuation: true,
+          toneMapped: false,
         }),
       );
-      sprite.scale.set(2.6, 0.65, 1);
+      sprite.scale.set(3.8, 1.15, 1);
+      sprite.renderOrder = 20;
       this.floatSprites.push(sprite);
       this.scene.add(sprite);
     }
@@ -706,7 +710,7 @@ export class WorldRenderer implements BoardHitTest {
         sprite.userData.label = key;
       }
       matOpacity(sprite.material, Math.max(0, text.life / text.maxLife));
-      sprite.position.copy(logicalToWorld(text.x, text.y, 1.35));
+      sprite.position.copy(logicalToWorld(text.x, text.y, 2.6));
     });
   }
 }

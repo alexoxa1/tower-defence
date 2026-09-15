@@ -57,27 +57,27 @@ export function SelectionPanel({
     if (!buildType) {
       return (
         <section className="selected-panel" aria-label="Scout">
-          <p className="section-title">Selected Unit</p>
+          <p className="section-title">Selected</p>
           <div className="selected-name">
             <span>Scout</span>
             <span className="level-tag">Move</span>
           </div>
           <p className="selected-hint">
-            Drag the map with the mouse. Pick a battery in the Armory to build.
+            Drag the board to pan. Pick a tower in the Armory to build.
           </p>
         </section>
       );
     }
     const buildMeta = ARMORY[buildType];
     return (
-      <section className="selected-panel" aria-label="Selected unit">
-        <p className="section-title">Selected Unit</p>
+      <section className="selected-panel" aria-label="Selected">
+        <p className="section-title">Selected</p>
         <UnitPortrait type={buildType} />
         <div className="selected-name">
           <span>{buildMeta.name}</span>
-          <span className="level-tag">Ready</span>
+          <span className="level-tag">Place</span>
         </div>
-        <p className="selected-hint">Click empty ground to place. Drag to pan the map.</p>
+        <p className="selected-hint">Click empty ground to place. Drag empty ground to pan.</p>
       </section>
     );
   }
@@ -88,8 +88,8 @@ export function SelectionPanel({
     const nextLevel = tower.level + 1;
     const sellArmed = confirmSell === tower.id;
     return (
-      <section className="selected-panel" aria-label="Selected unit">
-        <p className="section-title">Selected Unit</p>
+      <section className="selected-panel" aria-label="Selected">
+        <p className="section-title">Selected</p>
         <UnitPortrait type={tower.type} />
         <div className="selected-name">
           <span>{meta.name}</span>
@@ -157,7 +157,7 @@ export function SelectionPanel({
 
   return (
     <section className="selected-panel" aria-label="Multi selection">
-      <p className="section-title">Selected Unit</p>
+      <p className="section-title">Selected</p>
       <div className="selected-name">
         <span>{selected.length} Towers</span>
         <span className="level-tag">Linked</span>

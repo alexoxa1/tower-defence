@@ -49,31 +49,20 @@ export function updateWaveSpawner(dt: number, state: GameState): void {
     state.enemiesLeftToSpawn -= 1;
     state.spawnTimer += spawnBoss ? plan.gap * 1.8 : plan.gap;
   }
-
-  if (state.enemiesLeftToSpawn <= 0) {
-    state.waveActive = false;
-  }
 }
 
 export function checkWaveCleared(state: GameState, ports: WatchPorts): void {
-  if (state.gameOver) return;
+  if (state.gameOver || !state.waveActive) return;
+  if (state.enemies.length > 0 || state.enemiesLeftToSpawn > 0) return;
 
-  const noEnemies = state.enemies.length === 0;
-  const noSpawning = !state.waveActive && state.enemiesLeftToSpawn <= 0;
+  state.waveActive = false;
+  if (state.lastRewardedWave === state.wave) return;
 
-  if (
-    state.wave > 0 &&
-    noEnemies &&
-    noSpawning &&
-    state.lastRewardedWave !== state.wave
-  ) {
-    state.lastRewardedWave = state.wave;
-    const plan = getWavePlan(state.wave);
-    const bonus = 35 + state.wave * 7 + (plan.boss ? 80 : 0);
-    state.gold += bonus;
-    state.score += bonus * 4;
-    state.enemiesLeftToSpawn = 0;
-    ports.play("clear");
-    ports.notify(`${plan.name} cleared. Bonus ${money(bonus)}.`);
-  }
+  state.lastRewardedWave = state.wave;
+  const plan = getWavePlan(state.wave);
+  const bonus = 35 + state.wave * 7 + (plan.boss ? 80 : 0);
+  state.gold += bonus;
+  state.score += bonus * 4;
+  ports.play("clear");
+  ports.notify(`${plan.name} cleared. Bonus ${money(bonus)}.`);
 }

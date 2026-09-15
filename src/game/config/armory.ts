@@ -22,7 +22,7 @@ export const ARMORY: Record<
   sniper: {
     name: "Rail Sniper",
     blurb: "Long range · Applies Slow",
-    swatch: "#e8e6e1",
+    swatch: "#d8fff6",
     cost: TOWER_TYPES.sniper.cost,
   },
 };

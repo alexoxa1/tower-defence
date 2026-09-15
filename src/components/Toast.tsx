@@ -5,15 +5,18 @@ function riftTitle(message: string): string {
   if (m.includes("pause")) return "Hold Fast";
   if (m.includes("resume")) return "Watch Resumed";
   if (m.includes("mute") || m.includes("audio")) return "Signal";
+  if (m.includes("scout")) return "Scout";
+  if (m.includes("new watch") || m.includes("new game") || m.includes("reset")) {
+    return "New Watch";
+  }
   if (m.includes("incoming") || m.includes("cleared")) {
     return "Rift Storm Brewing";
   }
   if (m.includes("upgrade")) return "Forge Spark";
-  if (m.includes("sell")) return "Salvage";
-  if (m.includes("build") || m.includes("tower") || m.includes("defense")) {
+  if (m.includes("sell")) return "Refund";
+  if (m.includes("build") || m.includes("built") || m.includes("tower") || m.includes("defense")) {
     return "Armory";
   }
-  if (m.includes("new game") || m.includes("reset")) return "New Watch";
   return "Citadel";
 }
 

@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import type { BoardInput } from "../game/hud/commands";
 import type { InteractionMode } from "../game/types";
 
 interface GameCanvasProps {
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   input: BoardInput | null;
   isDragging: boolean;
   isPanning: boolean;
@@ -95,7 +95,7 @@ export function GameCanvas({
       ref={canvasRef}
       className={className}
       tabIndex={0}
-      aria-label="Tower defense game board. Drag to pan, scroll to zoom. Pick a battery to build."
+      aria-label="Citadel Watch board. Drag to pan, scroll to zoom. Pick a tower in the Armory to build."
     />
   );
 }

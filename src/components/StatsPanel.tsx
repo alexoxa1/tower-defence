@@ -9,7 +9,7 @@ function formatWave(wave: number, campaignWaves: number): string {
 export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
   const lowLives = snapshot.lives <= 5;
   return (
-    <section className="hud-tr" aria-label="Battlefield stats">
+    <section className="hud-tr" aria-label="Watch stats">
       <div className="stat">
         <Diamond size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>

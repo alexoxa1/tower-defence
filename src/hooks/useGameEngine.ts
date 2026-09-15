@@ -15,7 +15,6 @@ function emptySnapshot(): UiSnapshot {
 
 export function useGameEngine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<GameEngine | null>(null);
   const [snapshot, setSnapshot] = useState<UiSnapshot>(emptySnapshot);
   const [actions, setActions] = useState<GameActions | null>(null);
 
@@ -24,13 +23,11 @@ export function useGameEngine() {
     if (!canvas) return;
 
     const engine = new GameEngine(canvas, setSnapshot);
-    engineRef.current = engine;
     setActions(engine.actions);
     engine.start();
 
     return () => {
       engine.stop();
-      engineRef.current = null;
       setActions(null);
     };
   }, []);

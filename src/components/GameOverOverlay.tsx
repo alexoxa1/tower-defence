@@ -35,7 +35,7 @@ export function GameOverOverlay({
         {Math.max(0, snapshot.wave - 1)} · Kills {snapshot.kills}
       </p>
       <button type="button" className="action" onClick={() => actions?.resetGame()}>
-        Play Again
+        New Watch
       </button>
     </dialog>
   );

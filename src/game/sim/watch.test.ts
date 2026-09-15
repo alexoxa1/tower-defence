@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TOWER_LEVEL, STARTING_GOLD, TOWER_TYPES } from "../constants";
+import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, STARTING_GOLD, TOWER_TYPES } from "../constants";
 import { Enemy } from "../entities/Enemy";
 import { buildUiSnapshot } from "../hud/snapshot";
 import { createInitialState } from "../state/createInitialState";
@@ -10,7 +10,12 @@ import { deriveInteractionMode, refreshPreview } from "./preview";
 import { applyDamage, resolveEscape } from "../systems/combat";
 import { buildTower, validatePlacement } from "../systems/placement";
 import { canUpgradeTower, towerToSummary } from "../systems/upgrade";
-import { canStartWave, startWave } from "../systems/waves";
+import {
+  canStartWave,
+  checkWaveCleared,
+  startWave,
+  updateWaveSpawner,
+} from "../systems/waves";
 
 const OPEN_GROUND = { x: 200, y: 80 };
 
@@ -102,13 +107,28 @@ describe("eligibility", () => {
     });
     expect(snap.canStartWave).toBe(true);
     expect(snap.canAffordBuild.basic).toBe(true);
-    expect(snap.campaignWaves).toBe(15);
+    expect(snap.campaignWaves).toBe(CAMPAIGN_WAVES);
     expect(snap.maxTowerLevel).toBe(MAX_TOWER_LEVEL);
 
     startWave(state, silentPorts);
     expect(canStartWave(state)).toBe(false);
     snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
     expect(snap.canStartWave).toBe(false);
+    expect(snap.waveActive).toBe(true);
+
+    state.enemiesLeftToSpawn = 0;
+    state.enemies.push(new Enemy(1, "creep"));
+    updateWaveSpawner(0, state);
+    snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
+    expect(state.waveActive).toBe(true);
+    expect(snap.waveActive).toBe(true);
+    expect(snap.canStartWave).toBe(false);
+
+    state.enemies = [];
+    checkWaveCleared(state, silentPorts);
+    snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
+    expect(state.waveActive).toBe(false);
+    expect(snap.canStartWave).toBe(true);
 
     const fresh = createInitialState();
     fresh.selectedBuildType = "basic";
