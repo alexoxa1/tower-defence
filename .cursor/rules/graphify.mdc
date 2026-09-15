@@ -1,0 +1,46 @@
+---
+description: graphify knowledge graph context
+alwaysApply: true
+---
+
+This repo has a local Graphify knowledge graph at `graphify-out/`. Always query it before exploring source with Grep, Glob, Read, or shell search.
+
+Run Graphify from the project root (`/Users/pavelpugacev/Downloads/Tower ganme`). Do not grep `node_modules/`. Do not paste `graph.json` into prompts.
+
+**Required before codebase exploration (you and every subagent):**
+
+```
+graphify query "<question>"
+graphify path "<FromSymbol>" "<ToSymbol>"
+graphify explain "<symbol or concept>"
+```
+
+Useful extras:
+
+```
+graphify query "<question>" --budget 4000
+graphify affected "<symbol>"
+graphify god-nodes --top 15
+```
+
+Put this block in every subagent prompt that explores or explains code:
+
+```
+Before Grep/Read/Glob, run from the project root:
+graphify query "<question>"
+graphify path "<A>" "<B>"
+graphify explain "<symbol>"
+Then open only the files the graph names.
+```
+
+Use Read/Grep/Glob only after Graphify has named the files and symbols, or if `graphify-out/graph.json` is missing.
+
+After you change code, refresh the graph (AST-only, no API key):
+
+```
+npm run graphify:update
+```
+
+or `graphify update .`. Full rebuild without LLM: `graphify extract . --code-only`. Then `graphify cluster-only . --no-label` if `GRAPH_REPORT.md` is stale.
+
+Read `graphify-out/GRAPH_REPORT.md` only for a broad architecture pass when query/path/explain are not enough. Open `graphify-out/graph.html` in a browser to inspect the graph. Never commit `graphify-out/`.
