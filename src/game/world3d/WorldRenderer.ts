@@ -372,7 +372,7 @@ export class WorldRenderer implements BoardHitTest {
     if (this.reducedMotion) return;
 
     tickEmbers(this.embers, t);
-    const pulse = 0.82 + Math.sin(t * 1.4) * 0.1;
+    const pulse = 0.42 + Math.sin(t * 1.4) * 0.06;
     for (const mat of this.lavaMats) mat.emissiveIntensity = pulse;
 
     this.scene.traverse((obj) => {
@@ -398,7 +398,80 @@ export class WorldRenderer implements BoardHitTest {
     if (import.meta.env.DEV && !this.loggedDraw) {
       this.loggedDraw = true;
       console.info("[world3d] draw calls", this.renderer.info.render.calls);
+      this.logCoverage(w, h);
       this.renderer.info.autoReset = true;
+    }
+  }
+
+  private logCoverage(width: number, height: number): void {
+    const world = new THREE.Vector3();
+    const matrix = new THREE.Matrix4();
+    const screen: { x: number; y: number; wx: number; wz: number }[] = [];
+    const collect = (obj: THREE.Object3D) => {
+      const instanced = obj as THREE.InstancedMesh;
+      if (instanced.isInstancedMesh) {
+        for (let i = 0; i < instanced.count; i += 1) {
+          instanced.getMatrixAt(i, matrix);
+          world.setFromMatrixPosition(matrix);
+          instanced.localToWorld(world);
+          screen.push({ x: 0, y: 0, wx: world.x, wz: world.z });
+          const last = screen[screen.length - 1];
+          world.project(this.camera);
+          last.x = (world.x * 0.5 + 0.5) * width;
+          last.y = (-world.y * 0.5 + 0.5) * height;
+        }
+        return;
+      }
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.getWorldPosition(world);
+      const wx = world.x;
+      const wz = world.z;
+      world.project(this.camera);
+      screen.push({
+        x: (world.x * 0.5 + 0.5) * width,
+        y: (-world.y * 0.5 + 0.5) * height,
+        wx,
+        wz,
+      });
+    };
+    this.floraRoot.traverse(collect);
+    this.propRoot.traverse(collect);
+    const x0 = width * 0.2;
+    const y0 = height * 0.12;
+    const size = 320;
+    const step = 160;
+    let emptiest = Number.POSITIVE_INFINITY;
+    for (let y = y0; y + size <= height; y += step) {
+      for (let x = x0; x + size <= width; x += step) {
+        const cx = x + size * 0.5;
+        const cy = y + size * 0.5;
+        this.pointer.x = (cx / width) * 2 - 1;
+        this.pointer.y = -(cy / height) * 2 + 1;
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+        const hit = this.raycaster.intersectObject(this.ground)[0]?.point;
+        if (!hit || this.nearPath(hit.x, hit.z, 0.15)) continue;
+        let n = 0;
+        for (const p of screen) {
+          if (p.x >= x && p.x < x + size && p.y >= y && p.y < y + size) n += 1;
+        }
+        if (n < emptiest) emptiest = n;
+      }
+    }
+    console.info("[world3d] emptiest_region_props", Number.isFinite(emptiest) ? emptiest : 0);
+    const leaf = this.floraRoot.getObjectByName("broadleaf") as THREE.InstancedMesh | undefined;
+    if (leaf?.isInstancedMesh) {
+      let onScreen = 0;
+      for (let i = 0; i < leaf.count; i += 1) {
+        leaf.getMatrixAt(i, matrix);
+        world.setFromMatrixPosition(matrix);
+        leaf.localToWorld(world);
+        world.project(this.camera);
+        const sx = (world.x * 0.5 + 0.5) * width;
+        const sy = (-world.y * 0.5 + 0.5) * height;
+        if (sx > width * 0.2 && sx < width && sy > height * 0.12 && sy < height) onScreen += 1;
+      }
+      console.info("[world3d] broadleaf onscreen", onScreen, "of", leaf.count);
     }
   }
 
@@ -597,7 +670,7 @@ export class WorldRenderer implements BoardHitTest {
 
   private buildPath(road: readonly Point[] = this.currentRoad): void {
     const width = logicalRadius(28) * 2;
-    const lavaWidth = width * 0.7;
+    const lavaWidth = width * 0.45;
     const stoneMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: getRoadMap(),
@@ -607,12 +680,12 @@ export class WorldRenderer implements BoardHitTest {
     });
     useWorldXZMap(stoneMat, 0.28);
     const lavaMat = new THREE.MeshStandardMaterial({
-      color: 0x3a2214,
+      color: 0x181c24,
       map: getRoadMap(),
-      emissive: 0xc44a18,
+      emissive: 0xd47828,
       emissiveMap: getLavaMap(),
-      emissiveIntensity: 0.82,
-      roughness: 0.68,
+      emissiveIntensity: 0.42,
+      roughness: 0.72,
       metalness: 0.06,
     });
     useWorldXZMap(lavaMat, 0.34);

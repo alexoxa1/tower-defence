@@ -667,7 +667,7 @@ export function makeJaggedRock(rand: () => number): THREE.Mesh {
   const mesh = new THREE.Mesh(
     geo,
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.6, 0.1, 0.4 + rand() * 0.08),
+      color: new THREE.Color().setHSL(0.6, 0.08, 0.5 + rand() * 0.08),
       map: getRockMap(),
       roughness: 0.94,
       metalness: 0.08,

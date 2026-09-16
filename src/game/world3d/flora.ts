@@ -32,9 +32,14 @@ function paint(geo: THREE.BufferGeometry, r: number, g: number, b: number): THRE
 }
 
 function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  const merged = mergeGeometries(parts, false);
+  const prepared = parts.map((p) => (p.index ? p.toNonIndexed() : p));
+  const merged = mergeGeometries(prepared, false);
   for (const part of parts) part.dispose();
+  for (const p of prepared) {
+    if (!parts.includes(p)) p.dispose();
+  }
   if (!merged) {
+    if (import.meta.env.DEV) console.warn("[world3d] mergeGeometries failed");
     return new THREE.BufferGeometry();
   }
   merged.computeVertexNormals();
@@ -42,17 +47,17 @@ function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 function pineGeom(): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.06, 0.1, 0.55, 5);
-  trunk.translate(0, 0.28, 0);
+  const trunk = new THREE.CylinderGeometry(0.06, 0.1, 0.5, 5);
+  trunk.translate(0, 0.25, 0);
   paint(trunk, 0.1, 0.08, 0.07);
   const parts: THREE.BufferGeometry[] = [trunk];
   const layers: [number, number, number, number, number][] = [
-    [0.42, 0.48, 0.1, 0.18, 0.15],
-    [0.3, 0.78, 0.14, 0.26, 0.2],
-    [0.18, 1.02, 0.22, 0.38, 0.3],
+    [0.46, 0.44, 0.1, 0.18, 0.15],
+    [0.34, 0.74, 0.14, 0.26, 0.2],
+    [0.2, 0.98, 0.22, 0.38, 0.3],
   ];
   for (const [radius, y, r, g, b] of layers) {
-    const cone = new THREE.ConeGeometry(radius, 0.48, 6);
+    const cone = new THREE.ConeGeometry(radius, 0.42, 6);
     cone.translate(0, y, 0);
     paint(cone, r, g, b);
     parts.push(cone);
@@ -74,15 +79,15 @@ function squatPineGeom(): THREE.BufferGeometry {
 }
 
 function broadleafGeom(): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.07, 0.11, 0.5, 6);
-  trunk.translate(0, 0.25, 0);
-  paint(trunk, 0.18, 0.1, 0.06);
-  const core = new THREE.IcosahedronGeometry(0.34, 0);
-  core.translate(0, 0.62, 0);
-  paint(core, 0.45, 0.2, 0.08);
-  const crown = new THREE.IcosahedronGeometry(0.42, 0);
-  crown.translate(0.08, 0.78, -0.04);
-  paint(crown, 0.75, 0.42, 0.16);
+  const trunk = new THREE.CylinderGeometry(0.07, 0.12, 0.58, 6);
+  trunk.translate(0, 0.29, 0);
+  paint(trunk, 0.42, 0.2, 0.07);
+  const core = new THREE.IcosahedronGeometry(0.24, 0);
+  core.translate(0, 0.7, 0);
+  paint(core, 1, 0.48, 0.08);
+  const crown = new THREE.IcosahedronGeometry(0.36, 0);
+  crown.translate(0.04, 0.88, -0.03);
+  paint(crown, 1, 0.5, 0.06);
   return merge([trunk, core, crown]);
 }
 
@@ -140,8 +145,10 @@ function slabRockGeom(): THREE.BufferGeometry {
 function windMaterial(
   extras: THREE.MeshStandardMaterialParameters,
   wind: WindUniforms,
+  tag: string,
 ): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
     vertexColors: true,
     roughness: 0.82,
     metalness: 0.04,
@@ -170,7 +177,7 @@ uniform float uWind;`,
 `,
     );
   };
-  mat.customProgramCacheKey = () => "cw-flora-wind";
+  mat.customProgramCacheKey = () => `cw-flora-wind-${tag}`;
   return mat;
 }
 
@@ -197,6 +204,233 @@ function sampleCorridor(
   return { wx: w.x, wz: w.z };
 }
 
+type Site = { wx: number; wz: number };
+
+function commitInstance(
+  into: THREE.InstancedMesh,
+  index: number,
+  wx: number,
+  wz: number,
+  s: number,
+  yScale: number,
+  tilt: number,
+  yaw: number,
+  tint: (color: THREE.Color, rand: () => number) => void,
+  rand: () => number,
+  intoSites?: Site[],
+): void {
+  _pos.set(wx, 0, wz);
+  _euler.set(0, yaw, tilt);
+  _quat.setFromEuler(_euler);
+  _scale.set(s, yScale, s);
+  _matrix.compose(_pos, _quat, _scale);
+  into.setMatrixAt(index, _matrix);
+  tint(_color, rand);
+  into.setColorAt(index, _color);
+  intoSites?.push({ wx, wz });
+}
+
+function finishLayer(into: THREE.InstancedMesh, n: number): void {
+  into.count = n;
+  into.instanceMatrix.needsUpdate = true;
+  if (into.instanceColor) into.instanceColor.needsUpdate = true;
+  into.computeBoundingSphere();
+}
+
+function pickGroveCenters(
+  count: number,
+  pad: number,
+  inner: number,
+  outer: number,
+  road: readonly Point[],
+  rand: () => number,
+  occupied: OccupiedFn,
+): Site[] {
+  const groves: Site[] = [];
+  let guard = 0;
+  while (groves.length < count && guard < count * 36) {
+    guard += 1;
+    const sample = sampleCorridor(road, rand, inner, outer);
+    if (occupied(sample.wx, sample.wz, pad)) continue;
+    if (groves.some((g) => Math.hypot(g.wx - sample.wx, g.wz - sample.wz) < 5)) continue;
+    groves.push(sample);
+  }
+  if (groves.length === 0) groves.push(sampleCorridor(road, rand, inner, outer));
+  return groves;
+}
+
+function scatterMixed(
+  count: number,
+  pad: number,
+  inner: number,
+  outer: number,
+  groves: Site[],
+  groveShare: number,
+  groveRadius: number,
+  road: readonly Point[],
+  rand: () => number,
+  occupied: OccupiedFn,
+  into: THREE.InstancedMesh,
+  tint: (color: THREE.Color, rand: () => number) => void,
+  scaleRange: [number, number],
+  intoSites?: Site[],
+): void {
+  const groveTarget = Math.round(count * groveShare);
+  let n = 0;
+  let attempts = 0;
+  const maxAttempts = count * 80;
+  while (n < count && attempts < maxAttempts) {
+    attempts += 1;
+    let wx: number;
+    let wz: number;
+    if (n < groveTarget && groves.length > 0) {
+      const grove = groves[Math.floor(rand() * groves.length)];
+      const ang = rand() * Math.PI * 2;
+      const rad = Math.sqrt(rand()) * groveRadius;
+      wx = grove.wx + Math.cos(ang) * rad;
+      wz = grove.wz + Math.sin(ang) * rad;
+    } else if (road.length > 1 && rand() < 0.55) {
+      const sample = sampleCorridor(road, rand, inner, outer);
+      wx = sample.wx;
+      wz = sample.wz;
+    } else {
+      wx = (rand() - 0.5) * 108;
+      wz = (rand() - 0.5) * 80;
+    }
+    if (occupied(wx, wz, pad)) continue;
+    const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+    commitInstance(
+      into,
+      n,
+      wx,
+      wz,
+      s,
+      s,
+      (rand() - 0.5) * 0.08,
+      rand() * Math.PI * 2,
+      tint,
+      rand,
+      intoSites,
+    );
+    n += 1;
+  }
+  finishLayer(into, n);
+}
+
+function scatterBesidePines(
+  count: number,
+  pad: number,
+  sites: Site[],
+  nearMin: number,
+  nearMax: number,
+  rand: () => number,
+  occupied: OccupiedFn,
+  into: THREE.InstancedMesh,
+  scaleRange: [number, number],
+): void {
+  const nearby = sites.filter((s) => Math.abs(s.wx) < 11 && Math.abs(s.wz) < 9);
+  const pool = nearby.length >= 6 ? nearby : sites.filter((s) => Math.abs(s.wx) < 14 && Math.abs(s.wz) < 12);
+  const use = pool.length > 0 ? pool : [{ wx: 0, wz: 0 }];
+  let n = 0;
+  let attempts = 0;
+  const maxAttempts = count * 80;
+  while (n < count && attempts < maxAttempts) {
+    attempts += 1;
+    const site = use[n % use.length];
+    const ang = rand() * Math.PI * 2;
+    const rad = nearMin + rand() * (nearMax - nearMin);
+    const wx = site.wx + Math.cos(ang) * rad;
+    const wz = site.wz + Math.sin(ang) * rad;
+    if (Math.abs(wx) > 14 || Math.abs(wz) > 12) continue;
+    if (occupied(wx, wz, pad)) continue;
+    const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+    _pos.set(wx, 0, wz);
+    _euler.set(0, rand() * Math.PI * 2, (rand() - 0.5) * 0.06);
+    _quat.setFromEuler(_euler);
+    _scale.set(s, s, s);
+    _matrix.compose(_pos, _quat, _scale);
+    into.setMatrixAt(n, _matrix);
+    n += 1;
+  }
+  let k = 0;
+  while (n < count && k < count * 40) {
+    k += 1;
+    const ang = n * 2.4 + k * 0.37;
+    const rad = 3.4 + (k % 8) * 0.85;
+    const wx = Math.cos(ang) * rad;
+    const wz = Math.sin(ang) * rad;
+    if (occupied(wx, wz, pad * 0.45)) continue;
+    const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+    _pos.set(wx, 0, wz);
+    _euler.set(0, rand() * Math.PI * 2, 0);
+    _quat.setFromEuler(_euler);
+    _scale.set(s, s, s);
+    _matrix.compose(_pos, _quat, _scale);
+    into.setMatrixAt(n, _matrix);
+    n += 1;
+  }
+  into.count = n;
+  into.instanceMatrix.needsUpdate = true;
+  into.computeBoundingSphere();
+}
+
+function scatterAroundSites(
+  count: number,
+  pad: number,
+  sites: Site[],
+  nearMin: number,
+  nearMax: number,
+  bermInner: number,
+  bermOuter: number,
+  bermShare: number,
+  road: readonly Point[],
+  rand: () => number,
+  occupied: OccupiedFn,
+  into: THREE.InstancedMesh,
+  tint: (color: THREE.Color, rand: () => number) => void,
+  scaleRange: [number, number],
+): void {
+  const bermTarget = Math.round(count * bermShare);
+  let n = 0;
+  let attempts = 0;
+  const maxAttempts = count * 56;
+  while (n < count && attempts < maxAttempts) {
+    attempts += 1;
+    let wx: number;
+    let wz: number;
+    if (n >= bermTarget && sites.length > 0) {
+      const site = sites[Math.floor(rand() * sites.length)];
+      const ang = rand() * Math.PI * 2;
+      const rad = nearMin + rand() * (nearMax - nearMin);
+      wx = site.wx + Math.cos(ang) * rad;
+      wz = site.wz + Math.sin(ang) * rad;
+    } else if (road.length > 1) {
+      const sample = sampleCorridor(road, rand, bermInner, bermOuter);
+      wx = sample.wx;
+      wz = sample.wz;
+    } else {
+      wx = (rand() - 0.5) * 108;
+      wz = (rand() - 0.5) * 80;
+    }
+    if (occupied(wx, wz, pad)) continue;
+    const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+    commitInstance(
+      into,
+      n,
+      wx,
+      wz,
+      s,
+      s * (0.9 + rand() * 0.2),
+      (rand() - 0.5) * 0.1,
+      rand() * Math.PI * 2,
+      tint,
+      rand,
+    );
+    n += 1;
+  }
+  finishLayer(into, n);
+}
+
 function scatter(
   count: number,
   pad: number,
@@ -212,7 +446,7 @@ function scatter(
 ): void {
   let n = 0;
   let attempts = 0;
-  const maxAttempts = count * 36;
+  const maxAttempts = count * 40;
   while (n < count && attempts < maxAttempts) {
     attempts += 1;
     let wx: number;
@@ -227,20 +461,21 @@ function scatter(
     }
     if (occupied(wx, wz, pad)) continue;
     const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
-    _pos.set(wx, 0, wz);
-    _euler.set(0, rand() * Math.PI * 2, (rand() - 0.5) * 0.08);
-    _quat.setFromEuler(_euler);
-    _scale.set(s, s * (0.9 + rand() * 0.22), s);
-    _matrix.compose(_pos, _quat, _scale);
-    into.setMatrixAt(n, _matrix);
-    tint(_color, rand);
-    into.setColorAt(n, _color);
+    commitInstance(
+      into,
+      n,
+      wx,
+      wz,
+      s,
+      s * (0.9 + rand() * 0.18),
+      (rand() - 0.5) * 0.08,
+      rand() * Math.PI * 2,
+      tint,
+      rand,
+    );
     n += 1;
   }
-  into.count = n;
-  into.instanceMatrix.needsUpdate = true;
-  if (into.instanceColor) into.instanceColor.needsUpdate = true;
-  into.computeBoundingSphere();
+  finishLayer(into, n);
 }
 
 function scatterGroves(
@@ -329,20 +564,27 @@ export function buildFlora(
   const pineMat = windMaterial(
     { roughness: 0.88, emissive: 0x7dcea0, emissiveIntensity: 0.08 },
     wind,
+    "pine",
   );
-  const pine = makeLayer(pineGeom(), pineMat, 24, true);
-  scatter(24, 0.4, 0.84, 58, 140, road, rand, occupied, pine, pineTint, [0.82, 1.12]);
+  const groves = pickGroveCenters(12, 0.4, 62, 150, road, rand, occupied);
+  const treeSites: Site[] = [];
+
+  const pine = makeLayer(pineGeom(), pineMat, 40, true);
+  scatterMixed(40, 0.38, 56, 150, groves, 0.62, 2.7, road, rand, occupied, pine, pineTint, [1.05, 1.4], treeSites);
   pine.name = "pine";
 
-  const squat = makeLayer(squatPineGeom(), pineMat, 16, true);
-  scatter(16, 0.4, 0.86, 56, 130, road, rand, occupied, squat, pineTint, [0.82, 1.12]);
+  const squat = makeLayer(squatPineGeom(), pineMat, 28, true);
+  scatterMixed(28, 0.38, 54, 140, groves, 0.62, 2.9, road, rand, occupied, squat, pineTint, [1.05, 1.35], treeSites);
   squat.name = "pine-squat";
 
-  const leaf = makeLayer(broadleafGeom(), windMaterial({ roughness: 0.68 }, wind), 22, true);
-  scatter(22, 0.45, 0.82, 60, 145, road, rand, occupied, leaf, (c, r) => {
-    const t = r();
-    c.setRGB(0.86 + t * 0.08, 0.58 + t * 0.1, 0.34 + t * 0.08);
-  }, [0.78, 1.08]);
+  const leafMat = windMaterial(
+    { roughness: 0.5, metalness: 0.04, emissive: 0xff8414, emissiveIntensity: 0.28 },
+    wind,
+    "leaf",
+  );
+  const leaf = makeLayer(broadleafGeom(), leafMat, 36, true);
+  leaf.frustumCulled = false;
+  scatterBesidePines(36, 0.28, treeSites, 0.7, 1.65, rand, occupied, leaf, [1.16, 1.28]);
   leaf.name = "broadleaf";
 
   const shrub = makeLayer(
@@ -350,14 +592,15 @@ export function buildFlora(
     windMaterial(
       { roughness: 0.55, emissive: 0x7dcea0, emissiveIntensity: 0.18 },
       wind,
+      "shrub",
     ),
-    40,
+    64,
     false,
   );
-  scatter(40, 0.25, 0.88, 54, 120, road, rand, occupied, shrub, (c, r) => {
+  scatterMixed(64, 0.22, 50, 130, groves, 0.5, 3.2, road, rand, occupied, shrub, (c, r) => {
     const t = r();
     c.setRGB(0.6 + t * 0.1, 0.74 + t * 0.08, 0.64 + t * 0.08);
-  }, [0.95, 1.45]);
+  }, [1.1, 1.6], treeSites);
   shrub.name = "shrub";
 
   const crystal = makeLayer(
@@ -370,6 +613,7 @@ export function buildFlora(
         emissiveIntensity: 0.45,
       },
       wind,
+      "crystal",
     ),
     18,
     false,
@@ -381,14 +625,29 @@ export function buildFlora(
 
   const grass = makeLayer(
     grassGeom(),
-    windMaterial({ roughness: 0.88, side: THREE.DoubleSide }, wind),
-    150,
+    windMaterial({ roughness: 0.88, side: THREE.DoubleSide }, wind, "grass"),
+    300,
     false,
   );
-  scatter(150, 0.08, 0.9, 52, 105, road, rand, occupied, grass, (c, r) => {
-    const t = r();
-    c.setRGB(0.66 + t * 0.1, 0.74 + t * 0.08, 0.66 + t * 0.08);
-  }, [1.0, 1.55]);
+  scatterAroundSites(
+    300,
+    0.06,
+    treeSites,
+    0.35,
+    1.7,
+    50,
+    88,
+    0.42,
+    road,
+    rand,
+    occupied,
+    grass,
+    (c, r) => {
+      const t = r();
+      c.setRGB(0.66 + t * 0.1, 0.74 + t * 0.08, 0.66 + t * 0.08);
+    },
+    [1.2, 1.8],
+  );
   grass.name = "grass";
 
   const slabs = makeLayer(
@@ -400,14 +659,22 @@ export function buildFlora(
       metalness: 0.08,
       flatShading: true,
     }),
-    30,
+    40,
     true,
   );
   slabs.castShadow = true;
-  scatter(30, 0.55, 0.7, 70, 160, road, rand, occupied, slabs, (c, r) => {
-    c.setRGB(0.58 + r() * 0.1, 0.62 + r() * 0.08, 0.7 + r() * 0.1);
+  scatter(40, 0.55, 0.72, 68, 160, road, rand, occupied, slabs, (c, r) => {
+    c.setRGB(0.58 + r() * 0.12, 0.62 + r() * 0.1, 0.68 + r() * 0.1);
   }, [0.55, 1.2]);
   slabs.name = "rock-slab";
+
+  if (import.meta.env.DEV) {
+    console.info(
+      "[world3d] flora counts",
+      `pine=${pine.count} squat=${squat.count} broadleaf=${leaf.count} shrub=${shrub.count} crystal=${crystal.count} grass=${grass.count} slabs=${slabs.count}`,
+      `broadleaf_verts=${leaf.geometry.getAttribute("position")?.count ?? 0}`,
+    );
+  }
 
   root.add(pine, squat, leaf, shrub, crystal, grass, slabs);
   return root;

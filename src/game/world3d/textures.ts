@@ -112,8 +112,10 @@ export function getGroundMap(): THREE.CanvasTexture {
           const ridge = 1 - Math.abs(tileFbm(noise, u + 0.17, v, 6, 3));
           const crack = ridge > 0.88 ? (ridge - 0.88) / 0.12 : 0;
           const ash = (n + 1) * 0.5;
-          const r = 76 + ash * 84 + grit * 8 - crack * 36;
-          const g = 78 + ash * 84 + grit * 6 - crack * 30;
+          const blob = (tileFbm(noise, u + 0.31, v + 0.17, 2, 3) + 1) * 0.5;
+          const moss = blob > 0.78 ? Math.min(1, (blob - 0.78) / 0.14) : 0;
+          const r = 76 + ash * 84 + grit * 8 - crack * 36 - moss * 4;
+          const g = 78 + ash * 84 + grit * 6 - crack * 30 + moss * (8 + blob * 6);
           const b = 90 + ash * 86 + grit * 8 - crack * 18;
           const i = (y * size + x) * 4;
           data[i] = Math.max(0, Math.min(255, r));
@@ -159,13 +161,13 @@ export function getLavaMap(): THREE.CanvasTexture {
           const v = y / size;
           const n = tileFbm(noise, u, v, 3, 4);
           const seam =
-            Math.pow(1 - Math.abs(Math.sin(u * 18 + n * 4) * Math.cos(v * 7 + n * 3)), 10) +
-            Math.pow(1 - Math.abs(tileNoise(noise, u, v, 9)), 8) * 0.45;
+            Math.pow(1 - Math.abs(Math.sin(u * 24 + n * 3) * Math.cos(v * 10 + n * 2)), 7) +
+            Math.pow(1 - Math.abs(tileNoise(noise, u, v, 12)), 5) * 0.35;
           const glow = Math.min(1, seam);
           const i = (y * size + x) * 4;
-          data[i] = Math.min(255, 40 + glow * 215);
-          data[i + 1] = Math.min(255, 12 + glow * 90);
-          data[i + 2] = Math.min(255, 6 + glow * 18);
+          data[i] = Math.min(255, 28 + glow * 250);
+          data[i + 1] = Math.min(255, 3 + glow * 42);
+          data[i + 2] = Math.min(255, 2 + glow * 10);
           data[i + 3] = 255;
         }
       }
@@ -183,9 +185,9 @@ export function getRockMap(): THREE.CanvasTexture {
           const n = tileFbm(noise, u, v, 6, 4);
           const pit = tileNoise(noise, u, v, 18);
           const shade = (n + 1) * 0.5;
-          const r = 48 + shade * 40 + pit * 8;
-          const g = 52 + shade * 38 + pit * 6;
-          const b = 62 + shade * 42 + pit * 8;
+          const r = 70 + shade * 55 + pit * 8;
+          const g = 76 + shade * 54 + pit * 6;
+          const b = 90 + shade * 55 + pit * 8;
           const i = (y * size + x) * 4;
           data[i] = Math.max(0, Math.min(255, r));
           data[i + 1] = Math.max(0, Math.min(255, g));
