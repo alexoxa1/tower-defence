@@ -41,9 +41,9 @@ export function updateWaveSpawner(dt: number, state: GameState): void {
     const kind = spawnBoss
       ? plan.boss!
       : plan.roster[(plan.count - remaining) % plan.roster.length];
-    state.enemies.push(new Enemy(state.wave, kind));
+    state.enemies.push(new Enemy(state.wave, kind, state.road));
     if (kind === "swarm" && state.enemiesLeftToSpawn > (plan.boss ? 2 : 1)) {
-      state.enemies.push(new Enemy(state.wave, "swarm"));
+      state.enemies.push(new Enemy(state.wave, "swarm", state.road));
       state.enemiesLeftToSpawn -= 1;
     }
     state.enemiesLeftToSpawn -= 1;

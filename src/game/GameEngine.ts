@@ -1,4 +1,5 @@
 import { AudioEngine } from "./audio/AudioEngine";
+import { ARMORY_ORDER } from "./config/armory";
 import { type GameSpeed } from "./constants";
 import { buildUiSnapshot } from "./hud/snapshot";
 import type { GameActions, PointerOptions } from "./hud/commands";
@@ -16,7 +17,7 @@ import { refreshPreview } from "./sim/preview";
 import { startWave } from "./systems/waves";
 import { sellTower, sellTowers, upgradeTower, upgradeTowers } from "./systems/upgrade";
 import { WorldRenderer } from "./world3d/WorldRenderer";
-import type { GameState, TowerType, UiSnapshot } from "./types";
+import type { GameState, LayoutId, TowerType, UiSnapshot } from "./types";
 
 export type { GameActions, PointerOptions } from "./hud/commands";
 
@@ -29,8 +30,8 @@ export class GameEngine {
   private toastMessage: string | null = null;
   private toastTimer = 0;
   private onSnapshot: (snapshot: UiSnapshot) => void;
-  private isDraggingPointer = false;
   private audio = new AudioEngine();
+  private reducedMotion = false;
   private ports: WatchPorts;
   private hudKey = "";
   private panSession: {
@@ -50,6 +51,9 @@ export class GameEngine {
     this.board = this.world;
     this.state = createInitialState();
     this.onSnapshot = onSnapshot;
+    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.world.setReducedMotion(this.reducedMotion);
+    this.applyMotionPreference();
     this.ports = {
       play: (name) => this.audio.play(name),
       notify: (message) => this.showToast(message),
@@ -73,6 +77,8 @@ export class GameEngine {
       },
       handleWheel: (deltaY) => this.world.zoom(deltaY),
       toggleMute: () => this.toggleMute(),
+      setReducedMotion: (on) => this.setReducedMotion(on),
+      selectLayout: (id) => this.selectLayout(id),
       handleKeyDown: (key, code, ctrlKey) =>
         this.handleKeyDown(key, code, ctrlKey),
     };
@@ -109,6 +115,7 @@ export class GameEngine {
         toast: this.toastMessage,
         muted: this.audio.muted,
         isPanning: this.panSession?.moved === true,
+        reducedMotion: this.reducedMotion,
       }),
     );
     this.hudKey = this.snapshotKey();
@@ -127,14 +134,17 @@ export class GameEngine {
       s.gameOver,
       s.waveActive,
       s.enemies.length,
+      s.towers.length,
       s.enemiesLeftToSpawn,
       s.selectedBuildType,
       [...s.selectedTowerIds].join(","),
       s.speed,
       s.interactionMode,
-      s.drag.active,
+      s.drag.kind,
       this.toastMessage ?? "",
       this.audio.muted,
+      this.reducedMotion,
+      s.layoutId,
       this.panSession?.moved === true,
     ].join("|");
   }
@@ -152,6 +162,27 @@ export class GameEngine {
   private toggleMute(): void {
     this.audio.toggleMute();
     this.showToast(this.audio.muted ? "Audio muted." : "Audio on.");
+  }
+
+  private applyMotionPreference(): void {
+    document.documentElement.dataset.reducedMotion = this.reducedMotion
+      ? "true"
+      : "false";
+  }
+
+  private setReducedMotion(on: boolean): void {
+    this.reducedMotion = on;
+    this.world.setReducedMotion(on);
+    this.applyMotionPreference();
+    this.emitSnapshot();
+    this.showToast(on ? "Motion reduced." : "Motion on.");
+  }
+
+  private selectLayout(id: LayoutId): void {
+    resetState(this.state, { layoutId: id });
+    this.world.resetView();
+    this.emitSnapshot();
+    this.showToast("New Watch on a new Road.");
   }
 
   private resetGame(): void {
@@ -212,7 +243,6 @@ export class GameEngine {
   }
 
   private clearSelection(): void {
-    this.isDraggingPointer = false;
     clearBoardSelection(this.state);
     this.emitSnapshot();
   }
@@ -241,13 +271,9 @@ export class GameEngine {
         return;
       }
       if (hit.kind === "tower") {
-        const tower = this.state.towers.find((item) => item.id === hit.towerId);
-        if (tower) {
-          pointerDown(this.state, { x: tower.x, y: tower.y }, options, this.ports);
-          this.isDraggingPointer = this.state.drag.active;
-          this.emitSnapshot();
-          return;
-        }
+        pointerDown(this.state, hit.point, options, this.ports);
+        this.emitSnapshot();
+        return;
       }
       this.panSession = {
         x: clientX,
@@ -276,15 +302,12 @@ export class GameEngine {
       if (!session.moved) {
         const hit = this.board.hit(clientX, clientY);
         if (hit.kind === "tower") {
-          const tower = this.state.towers.find((item) => item.id === hit.towerId);
-          if (tower) {
-            pointerDown(
-              this.state,
-              { x: tower.x, y: tower.y },
-              { button: session.button, ctrlKey: false, metaKey: false },
-              this.ports,
-            );
-          }
+          pointerDown(
+            this.state,
+            hit.point,
+            { button: session.button, ctrlKey: false, metaKey: false },
+            this.ports,
+          );
         } else {
           const point =
             hit.kind === "ground"
@@ -315,8 +338,7 @@ export class GameEngine {
     }
     if (phase === "move") pointerMove(this.state, point);
     else if (phase === "up") {
-      pointerUp(this.state, point, this.ports, this.isDraggingPointer);
-      this.isDraggingPointer = false;
+      pointerUp(this.state, point, this.ports);
       this.emitSnapshot();
     }
   }
@@ -380,20 +402,14 @@ export class GameEngine {
       this.world.pan(0, panStep);
       return;
     }
-    const hotkeys: Record<string, TowerType | "scout"> = {
-      "1": "basic",
-      "2": "cannon",
-      "3": "sniper",
-      "4": "scout",
-      v: "scout",
-      V: "scout",
-    };
-    const pick = hotkeys[key];
-    if (pick === "scout") {
-      this.selectBuildType(null);
+    const pickIndex = Number.parseInt(key, 10);
+    if (pickIndex >= 1 && pickIndex <= ARMORY_ORDER.length) {
+      this.selectBuildType(ARMORY_ORDER[pickIndex - 1]);
       return;
     }
-    if (pick) this.selectBuildType(pick);
+    if (key === "v" || key === "V" || key === "0") {
+      this.selectBuildType(null);
+    }
   }
 
   private loop(timestamp: number): void {

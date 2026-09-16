@@ -95,6 +95,9 @@ export function SelectionPanel({
           <span>{meta.name}</span>
           <span className="level-tag">Level {tower.level}</span>
         </div>
+        <p className="selected-hint">
+          Drag to relocate. Click empty ground to pan.
+        </p>
         <ul className="selected-stats">
           <li>
             <Crosshair size={13} weight="bold" aria-hidden="true" />

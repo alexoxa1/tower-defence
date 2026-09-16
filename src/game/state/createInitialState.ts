@@ -1,10 +1,17 @@
 import { STARTING_GOLD, STARTING_LIVES } from "../constants";
-import type { GameState } from "../types";
+import { DEFAULT_LAYOUT_ID, getLayout } from "../config/layouts";
+import { idleDrag } from "../sim/drag";
+import type { GameState, LayoutId } from "../types";
 
 export function createInitialState(options?: {
   startingGold?: number;
+  layoutId?: LayoutId;
 }): GameState {
+  const layoutId = options?.layoutId ?? DEFAULT_LAYOUT_ID;
+  const layout = getLayout(layoutId);
   return {
+    layoutId,
+    road: layout.road,
     gold: options?.startingGold ?? STARTING_GOLD,
     lives: STARTING_LIVES,
     wave: 0,
@@ -26,12 +33,7 @@ export function createInitialState(options?: {
     paused: false,
     speed: 1,
     gameOver: false,
-    drag: {
-      active: false,
-      anchorTowerId: null,
-      originPositions: new Map(),
-      currentPoint: null,
-    },
+    drag: idleDrag(),
     elapsed: 0,
     shake: { time: 0, mag: 0 },
     combo: 0,
@@ -52,15 +54,15 @@ export function createInitialState(options?: {
 
 export function resetState(
   state: GameState,
-  options?: { startingGold?: number },
+  options?: { startingGold?: number; layoutId?: LayoutId },
 ): void {
-  const fresh = createInitialState(options);
+  const layoutId = options?.layoutId ?? state.layoutId;
+  const fresh = createInitialState({
+    startingGold: options?.startingGold,
+    layoutId,
+  });
   Object.assign(state, fresh);
   state.selectedTowerIds = new Set();
-  state.drag = {
-    active: false,
-    anchorTowerId: null,
-    originPositions: new Map(),
-    currentPoint: null,
-  };
+  state.drag = idleDrag();
+  state.road = getLayout(layoutId).road;
 }

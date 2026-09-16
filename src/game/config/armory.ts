@@ -1,7 +1,13 @@
 import { TOWER_TYPES } from "../constants";
 import type { TowerType } from "../types";
 
-export const ARMORY_ORDER: TowerType[] = ["basic", "cannon", "sniper"];
+export const ARMORY_ORDER: TowerType[] = [
+  "basic",
+  "cannon",
+  "sniper",
+  "beacon",
+  "lantern",
+];
 
 export const ARMORY: Record<
   TowerType,
@@ -24,5 +30,17 @@ export const ARMORY: Record<
     blurb: "Long range · Applies Slow",
     swatch: "#d8fff6",
     cost: TOWER_TYPES.sniper.cost,
+  },
+  beacon: {
+    name: "Ward Beacon",
+    blurb: "Aura · Extra Range nearby",
+    swatch: "#e8a54b",
+    cost: TOWER_TYPES.beacon.cost,
+  },
+  lantern: {
+    name: "Frost Lantern",
+    blurb: "Aura · Slows the Road",
+    swatch: "#7dcea0",
+    cost: TOWER_TYPES.lantern.cost,
   },
 };

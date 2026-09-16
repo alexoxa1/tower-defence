@@ -10,6 +10,7 @@ function emptySnapshot(): UiSnapshot {
     toast: null,
     muted: false,
     isPanning: false,
+    reducedMotion: false,
   });
 }
 

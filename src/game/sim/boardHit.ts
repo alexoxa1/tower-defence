@@ -23,7 +23,7 @@ export function createLogicalHitTest(getState: () => GameState): BoardHitTest {
       const point = { x: clientX, y: clientY };
       const tower = findTowerAt(getState(), point);
       if (tower) {
-        return { kind: "tower", towerId: tower.id, point: { x: tower.x, y: tower.y } };
+        return { kind: "tower", towerId: tower.id, point };
       }
       return { kind: "ground", point };
     },

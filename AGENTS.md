@@ -16,7 +16,7 @@ The live view is `src/game/world3d/`. Each frame `GameEngine` calls `WorldRender
 
 HUD is React: `src/App.tsx`, `src/hooks/useGameEngine.ts`, `src/components/`, `src/styles/`. HUD reads `UiSnapshot` and calls `HudCommands`. HUD modules must not import `GameEngine`. Canvas pointers go to `BoardInput.handleScreenPointer`. Keyboard in `App` goes to `HudCommands.handleKeyDown`.
 
-Visual work starts at `DESIGN.md` and `src/styles/tokens.css`. Economy, Waves, and tower numbers start at `src/game/state/createInitialState.ts`, `src/game/config/`, and `src/game/constants.ts`.
+Visual work starts at `DESIGN.md` and `src/styles/tokens.css`. Economy, Waves, Layouts, and tower numbers start at `src/game/state/createInitialState.ts`, `src/game/config/`, and `src/game/constants.ts`.
 
 ## Commands
 

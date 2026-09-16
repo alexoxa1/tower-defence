@@ -175,9 +175,90 @@ export function makeRail(): THREE.Group {
   return g;
 }
 
+export function makeBeacon(): THREE.Group {
+  const g = new THREE.Group();
+  const amber = 0xe8a54b;
+  const pad = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.95, 1.12, 0.22, 6),
+    mat(0x2a2214, { metalness: 0.5 }),
+  );
+  pad.position.y = 0.12;
+  g.add(pad);
+
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.38, 2.2, 6),
+    mat(0x3a2e1c, { metalness: 0.55, roughness: 0.4 }),
+  );
+  shaft.position.y = 1.2;
+  g.add(shaft);
+
+  const flame = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 12, 10),
+    mat(amber, { emissive: amber, emissiveIntensity: 1.35, roughness: 0.28 }),
+  );
+  flame.position.y = 2.45;
+  g.add(flame);
+
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.62, 0.05, 8, 16),
+    mat(amber, { emissive: amber, emissiveIntensity: 0.9 }),
+  );
+  halo.rotation.x = Math.PI / 2;
+  halo.position.y = 2.45;
+  g.add(halo);
+
+  const aim = new THREE.Group();
+  aim.name = "aim";
+  aim.position.y = 2.45;
+  g.add(aim);
+  g.userData.kind = "tower";
+  return g;
+}
+
+export function makeLantern(): THREE.Group {
+  const g = new THREE.Group();
+  const mint = 0x7dcea0;
+  const bowl = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.82, 1.05, 0.28, 8),
+    mat(0x14241c, { metalness: 0.4, roughness: 0.62 }),
+  );
+  bowl.position.y = 0.16;
+  g.add(bowl);
+
+  const cage = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.48, 0.55, 1.35, 8, 1, true),
+    mat(mint, { emissive: mint, emissiveIntensity: 0.35, transparent: true, opacity: 0.7 }),
+  );
+  cage.position.y = 1.05;
+  g.add(cage);
+
+  const core = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.38),
+    mat(0xd8fff6, { emissive: mint, emissiveIntensity: 1.2, metalness: 0.7 }),
+  );
+  core.position.y = 1.1;
+  g.add(core);
+
+  const cap = new THREE.Mesh(
+    new THREE.ConeGeometry(0.55, 0.42, 8),
+    mat(0x1a2e24, { metalness: 0.5 }),
+  );
+  cap.position.y = 1.85;
+  g.add(cap);
+
+  const aim = new THREE.Group();
+  aim.name = "aim";
+  aim.position.y = 1.1;
+  g.add(aim);
+  g.userData.kind = "tower";
+  return g;
+}
+
 export function makeTower(type: TowerType): THREE.Group {
   if (type === "cannon") return makeMortar();
   if (type === "sniper") return makeRail();
+  if (type === "beacon") return makeBeacon();
+  if (type === "lantern") return makeLantern();
   return makeHexGun();
 }
 

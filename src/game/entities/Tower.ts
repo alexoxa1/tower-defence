@@ -1,5 +1,5 @@
 import { TOWER_TYPES } from "../constants";
-import { getTowerStats } from "../config/towerStats";
+import { getEffectiveStats, getTowerStats } from "../config/towerStats";
 import type { GameState, TowerType } from "../types";
 import type { WatchPorts } from "../sim/ports";
 import { distance } from "../utils/geometry";
@@ -32,20 +32,25 @@ export class Tower {
   update(dt: number, state: GameState, ports: WatchPorts): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.flash = Math.max(0, this.flash - dt * 8);
-    const target = this.findTarget(state);
+    const stats = getEffectiveStats(state, this);
 
+    if (stats.auraSlowDuration > 0 && stats.auraRadius > 0) {
+      for (const enemy of state.enemies) {
+        if (!enemy.alive) continue;
+        if (distance(this, enemy) <= stats.auraRadius) {
+          enemy.applySlow(stats.auraSlowDuration, stats.auraSlowFactor);
+        }
+      }
+    }
+
+    if (stats.fireRate <= 0) return;
+
+    const target = this.findTarget(state, stats.range);
     if (target) {
       this.angle = Math.atan2(target.y - this.y, target.x - this.x);
       if (this.cooldown <= 0) {
-        const stats = this.stats;
         state.projectiles.push(
-          new Projectile(
-            this.x,
-            this.y,
-            target,
-            stats,
-            this.type === "sniper" ? 1.4 : 0,
-          ),
+          new Projectile(this.x, this.y, target, stats, stats.slowDuration),
         );
         this.cooldown = 1 / stats.fireRate;
         this.flash = 1;
@@ -54,17 +59,13 @@ export class Tower {
     }
   }
 
-  findTarget(state: GameState) {
-    const stats = this.stats;
+  findTarget(state: GameState, range = this.stats.range) {
     let bestTarget = null;
     let bestProgress = -Infinity;
 
     for (const enemy of state.enemies) {
       if (!enemy.alive) continue;
-      if (
-        distance(this, enemy) <= stats.range &&
-        enemy.distanceTravelled > bestProgress
-      ) {
+      if (distance(this, enemy) <= range && enemy.distanceTravelled > bestProgress) {
         bestProgress = enemy.distanceTravelled;
         bestTarget = enemy;
       }

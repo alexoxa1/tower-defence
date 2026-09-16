@@ -10,7 +10,7 @@ Midnight command board. Not a generic dark dashboard.
 - Ground: `#0c0b0e`
 - No Inter. No purple. No emoji chrome.
 
-Towers: Hex Gun (orange `#ff6a1a`), Mortar Post (teal `#2ee6c5`), Rail Sniper (mint `#d8fff6`).
+Towers: Hex Gun (orange `#ff6a1a`), Mortar Post (teal `#2ee6c5`), Rail Sniper (mint `#d8fff6`), Ward Beacon (amber `#e8a54b`), Frost Lantern (support mint `#7dcea0`).
 HUD accent is amber. Tower bodies follow the 3D materials.
 Enemies: Creep, Runner, Brute, Swarm, Warden, Shade, Colossus, Overlord.
 Lose state title: Rift Broken.

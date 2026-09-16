@@ -20,7 +20,7 @@ export function ShopPanel({
         type="button"
         className={`tower-card${scouting ? " selected" : ""}`}
         aria-pressed={scouting}
-        aria-label="Scout. Drag the board. Key 4"
+        aria-label="Scout. Drag the board. Key V"
         onClick={() => actions?.selectBuildType(null)}
       >
         <span className="swatch scout-swatch" aria-hidden="true">
@@ -44,7 +44,7 @@ export function ShopPanel({
             className={`tower-card${selected ? " selected" : ""}`}
             disabled={disabled}
             aria-pressed={selected}
-            aria-label={`${item.name}, ${formatNumber(item.cost)} gold. ${item.blurb}. Key ${index + 1}`}
+        aria-label={`${item.name}, ${formatNumber(item.cost)} gold. ${item.blurb}. Key ${index + 1}`}
             onClick={() => actions?.selectBuildType(type)}
           >
             <span

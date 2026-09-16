@@ -6,7 +6,9 @@ import type { Tower } from "./entities/Tower";
 
 import type { GameSpeed } from "./constants";
 
-export type TowerType = "basic" | "cannon" | "sniper";
+export type TowerType = "basic" | "cannon" | "sniper" | "beacon" | "lantern";
+
+export type LayoutId = "serpentine" | "switchback" | "oxbow";
 
 export type InteractionMode = "scout" | "build" | "tower" | "multi";
 
@@ -24,16 +26,30 @@ export interface TowerStats {
   damage: number;
   projectileSpeed: number;
   splash: number;
+  slowDuration: number;
+  auraRadius: number;
+  auraRangeBonus: number;
+  auraSlowFactor: number;
+  auraSlowDuration: number;
   color: string;
   bulletColor: string;
 }
 
-export interface DragState {
-  active: boolean;
-  anchorTowerId: string | null;
-  originPositions: Map<string, Point>;
-  currentPoint: Point | null;
-}
+export type DragState =
+  | { kind: "idle" }
+  | {
+      kind: "pending";
+      pressPoint: Point;
+      anchorTowerId: string;
+      originPositions: Map<string, Point>;
+    }
+  | {
+      kind: "relocating";
+      pressPoint: Point;
+      anchorTowerId: string;
+      originPositions: Map<string, Point>;
+      currentPoint: Point;
+    };
 
 export interface PlacementPreview {
   visible: boolean;
@@ -56,6 +72,8 @@ export type EnemyKind =
   | "overlord";
 
 export interface GameState {
+  layoutId: LayoutId;
+  road: readonly Point[];
   gold: number;
   lives: number;
   wave: number;
@@ -128,6 +146,10 @@ export interface UiSnapshot {
   canAffordBuild: Record<TowerType, boolean>;
   campaignWaves: number;
   maxTowerLevel: number;
+  layoutId: LayoutId;
+  layouts: { id: LayoutId; name: string }[];
+  reducedMotion: boolean;
+  towerCount: number;
 }
 
 export interface PlacementResult {

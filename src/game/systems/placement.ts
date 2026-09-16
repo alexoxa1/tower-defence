@@ -3,7 +3,6 @@ import {
   LOGICAL_WIDTH,
   TOWER_TYPES,
 } from "../constants";
-import { PATH } from "../constants";
 import { Tower } from "../entities/Tower";
 import { addFloatingText } from "./fx";
 import type { WatchPorts } from "../sim/ports";
@@ -16,10 +15,11 @@ import type {
 import { money } from "../utils/format";
 import { distance, pointToSegmentDistance } from "../utils/geometry";
 
-function isPointOnPath(point: Point, extraPadding = 10): boolean {
+function isPointOnPath(state: GameState, point: Point, extraPadding = 10): boolean {
   const pathRadius = 27 + extraPadding;
-  for (let i = 0; i < PATH.length - 1; i += 1) {
-    if (pointToSegmentDistance(point, PATH[i], PATH[i + 1]) <= pathRadius) {
+  const road = state.road;
+  for (let i = 0; i < road.length - 1; i += 1) {
+    if (pointToSegmentDistance(point, road[i], road[i + 1]) <= pathRadius) {
       return true;
     }
   }
@@ -56,7 +56,7 @@ export function validatePlacement(
     };
   }
 
-  if (isPointOnPath(point, 12)) {
+  if (isPointOnPath(state, point, 12)) {
     return { ok: false, reason: "Cannot build on the road." };
   }
 
