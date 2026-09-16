@@ -1,5 +1,4 @@
-import { PATH } from "../constants";
-import type { EnemyKind } from "../types";
+import type { EnemyKind, Point } from "../types";
 
 const KIND_TRAITS: Record<
   EnemyKind,
@@ -38,17 +37,19 @@ export class Enemy {
   scale: number;
   livesCost: number;
   isBoss: boolean;
+  road: readonly Point[];
   alive = true;
   escaped = false;
   flash = 0;
   slowTimer = 0;
   slowFactor = 1;
 
-  constructor(waveNumber: number, kind?: EnemyKind) {
+  constructor(waveNumber: number, kind: EnemyKind | undefined, road: readonly Point[]) {
     this.kind = pickKind(waveNumber, kind);
     const trait = KIND_TRAITS[this.kind];
-    this.x = PATH[0].x;
-    this.y = PATH[0].y;
+    this.x = road[0].x;
+    this.y = road[0].y;
+    this.road = road;
     this.speed = (50 + waveNumber * 4.5) * trait.speed;
     this.maxHp = Math.round(
       (42 * Math.pow(1.18, waveNumber - 1) + waveNumber * 13) * trait.hp,
@@ -72,7 +73,7 @@ export class Enemy {
 
   /** Walks the Road. Returns true on the frame the enemy Escapes through Out. */
   update(dt: number): boolean {
-    if (!this.alive || this.waypointIndex >= PATH.length) return false;
+    if (!this.alive || this.waypointIndex >= this.road.length) return false;
 
     if (this.slowTimer > 0) {
       this.slowTimer = Math.max(0, this.slowTimer - dt);
@@ -82,7 +83,7 @@ export class Enemy {
     const pace = this.slowTimer > 0 ? this.speed * this.slowFactor : this.speed;
     let remaining = pace * dt;
     while (remaining > 0 && this.alive) {
-      const target = PATH[this.waypointIndex];
+      const target = this.road[this.waypointIndex];
       const dx = target.x - this.x;
       const dy = target.y - this.y;
       const segmentDistance = Math.hypot(dx, dy);
@@ -94,7 +95,7 @@ export class Enemy {
         remaining -= segmentDistance;
         this.waypointIndex += 1;
 
-        if (this.waypointIndex >= PATH.length) {
+        if (this.waypointIndex >= this.road.length) {
           this.alive = false;
           this.escaped = true;
           return true;

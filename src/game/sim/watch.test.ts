@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, STARTING_GOLD, TOWER_TYPES } from "../constants";
+import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, RELOCATE_THRESHOLD, STARTING_GOLD, TOWER_TYPES } from "../constants";
 import { Enemy } from "../entities/Enemy";
 import { buildUiSnapshot } from "../hud/snapshot";
 import { createInitialState } from "../state/createInitialState";
@@ -7,9 +7,12 @@ import { advanceWatch } from "./advanceWatch";
 import { createLogicalHitTest } from "./boardHit";
 import { createRecordingPorts, silentPorts } from "./ports";
 import { deriveInteractionMode, refreshPreview } from "./preview";
+import { pointerDown, pointerMove, pointerUp } from "./pointer";
 import { applyDamage, resolveEscape } from "../systems/combat";
 import { buildTower, validatePlacement } from "../systems/placement";
 import { canUpgradeTower, towerToSummary } from "../systems/upgrade";
+import { getEffectiveStats } from "../config/towerStats";
+import { getLayout } from "../config/layouts";
 import {
   canStartWave,
   checkWaveCleared,
@@ -18,6 +21,7 @@ import {
 } from "../systems/waves";
 
 const OPEN_GROUND = { x: 200, y: 80 };
+const LEFT = { button: 0, ctrlKey: false, metaKey: false };
 
 describe("advanceWatch", () => {
   it("ticks a Watch with no canvas or WebGL", () => {
@@ -61,7 +65,7 @@ describe("combat", () => {
   it("pays gold and score on a kill", () => {
     const state = createInitialState();
     const rec = createRecordingPorts();
-    const enemy = new Enemy(1, "creep");
+    const enemy = new Enemy(1, "creep", state.road);
     enemy.hp = 4;
     state.enemies.push(enemy);
     const goldBefore = state.gold;
@@ -79,7 +83,7 @@ describe("combat", () => {
     const state = createInitialState();
     state.lives = 1;
     const rec = createRecordingPorts();
-    const enemy = new Enemy(1, "creep");
+    const enemy = new Enemy(1, "creep", state.road);
     enemy.escaped = true;
     enemy.alive = false;
 
@@ -89,7 +93,7 @@ describe("combat", () => {
     expect(rec.sounds.filter((s) => s === "lose")).toHaveLength(1);
     expect(rec.sounds).not.toContain("life");
 
-    resolveEscape(state, new Enemy(1, "creep"), rec.ports);
+    resolveEscape(state, new Enemy(1, "creep", state.road), rec.ports);
     expect(rec.sounds.filter((s) => s === "lose")).toHaveLength(1);
   });
 });
@@ -104,29 +108,48 @@ describe("eligibility", () => {
       toast: null,
       muted: false,
       isPanning: false,
+      reducedMotion: false,
     });
     expect(snap.canStartWave).toBe(true);
     expect(snap.canAffordBuild.basic).toBe(true);
+    expect(snap.canAffordBuild.beacon).toBe(true);
     expect(snap.campaignWaves).toBe(CAMPAIGN_WAVES);
     expect(snap.maxTowerLevel).toBe(MAX_TOWER_LEVEL);
+    expect(snap.layoutId).toBe("serpentine");
+    expect(snap.layouts).toHaveLength(3);
 
     startWave(state, silentPorts);
     expect(canStartWave(state)).toBe(false);
-    snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
+    snap = buildUiSnapshot(state, {
+      toast: null,
+      muted: false,
+      isPanning: false,
+      reducedMotion: false,
+    });
     expect(snap.canStartWave).toBe(false);
     expect(snap.waveActive).toBe(true);
 
     state.enemiesLeftToSpawn = 0;
-    state.enemies.push(new Enemy(1, "creep"));
+    state.enemies.push(new Enemy(1, "creep", state.road));
     updateWaveSpawner(0, state);
-    snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
+    snap = buildUiSnapshot(state, {
+      toast: null,
+      muted: false,
+      isPanning: false,
+      reducedMotion: false,
+    });
     expect(state.waveActive).toBe(true);
     expect(snap.waveActive).toBe(true);
     expect(snap.canStartWave).toBe(false);
 
     state.enemies = [];
     checkWaveCleared(state, silentPorts);
-    snap = buildUiSnapshot(state, { toast: null, muted: false, isPanning: false });
+    snap = buildUiSnapshot(state, {
+      toast: null,
+      muted: false,
+      isPanning: false,
+      reducedMotion: false,
+    });
     expect(state.waveActive).toBe(false);
     expect(snap.canStartWave).toBe(true);
 
@@ -178,6 +201,128 @@ describe("board hit-test", () => {
     expect(miss.kind).toBe("ground");
     const hit = board.hit(OPEN_GROUND.x, OPEN_GROUND.y);
     expect(hit.kind).toBe("tower");
-    if (hit.kind === "tower") expect(hit.towerId).toBe(state.towers[0].id);
+    if (hit.kind === "tower") {
+      expect(hit.towerId).toBe(state.towers[0].id);
+      expect(hit.point).toEqual(OPEN_GROUND);
+    }
+  });
+});
+
+describe("pointer select vs relocate", () => {
+  it("selects a tower on tap without moving it", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    const tower = state.towers[0];
+    const origin = { x: tower.x, y: tower.y };
+    const press = { x: origin.x + 8, y: origin.y + 6 };
+
+    pointerDown(state, press, LEFT, silentPorts);
+    expect(state.selectedTowerIds.has(tower.id)).toBe(true);
+    expect(state.drag.kind).toBe("pending");
+    pointerUp(state, press, silentPorts);
+
+    expect(tower.x).toBe(origin.x);
+    expect(tower.y).toBe(origin.y);
+    expect(state.drag.kind).toBe("idle");
+    expect(state.selectedTowerIds.has(tower.id)).toBe(true);
+  });
+
+  it("does not relocate when travel stays under the threshold", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    const tower = state.towers[0];
+    const origin = { x: tower.x, y: tower.y };
+    const press = { x: origin.x, y: origin.y };
+    const nudge = { x: origin.x + RELOCATE_THRESHOLD - 1, y: origin.y };
+
+    pointerDown(state, press, LEFT, silentPorts);
+    pointerMove(state, nudge);
+    expect(state.drag.kind).toBe("pending");
+    pointerUp(state, nudge, silentPorts);
+
+    expect(tower.x).toBe(origin.x);
+    expect(tower.y).toBe(origin.y);
+  });
+
+  it("relocates after travel past the threshold", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    const tower = state.towers[0];
+    const origin = { x: tower.x, y: tower.y };
+    const press = { x: origin.x, y: origin.y };
+    const drop = { x: origin.x + 80, y: origin.y + 10 };
+
+    pointerDown(state, press, LEFT, silentPorts);
+    pointerMove(state, drop);
+    expect(state.drag.kind).toBe("relocating");
+    pointerUp(state, drop, silentPorts);
+
+    expect(tower.x).toBeCloseTo(drop.x);
+    expect(tower.y).toBeCloseTo(drop.y);
+    expect(state.drag.kind).toBe("idle");
+  });
+
+  it("stays relocating if the pointer returns under the threshold", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    const tower = state.towers[0];
+    const origin = { x: tower.x, y: tower.y };
+    const press = { x: origin.x, y: origin.y };
+
+    pointerDown(state, press, LEFT, silentPorts);
+    pointerMove(state, { x: origin.x + 80, y: origin.y });
+    expect(state.drag.kind).toBe("relocating");
+    pointerMove(state, { x: origin.x + 4, y: origin.y });
+    expect(state.drag.kind).toBe("relocating");
+    pointerUp(state, { x: origin.x + 4, y: origin.y }, silentPorts);
+
+    expect(tower.x).toBeCloseTo(origin.x + 4);
+    expect(tower.y).toBeCloseTo(origin.y);
+  });
+});
+
+describe("layouts", () => {
+  it("starts a Watch on Switchback with that Road", () => {
+    const state = createInitialState({ layoutId: "switchback" });
+    expect(state.layoutId).toBe("switchback");
+    expect(state.road).toBe(getLayout("switchback").road);
+    expect(state.road[0]).toEqual(getLayout("switchback").road[0]);
+  });
+});
+
+describe("new Armory types", () => {
+  it("Frost Lantern applies Slow without a projectile", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "lantern";
+    expect(buildTower(state, { x: 340, y: 80 }, silentPorts).ok).toBe(true);
+    const lantern = state.towers[0];
+    const enemy = new Enemy(1, "creep", state.road);
+    enemy.x = lantern.x;
+    enemy.y = lantern.y;
+    state.enemies.push(enemy);
+    advanceWatch(state, 1 / 60, silentPorts);
+    expect(state.projectiles).toHaveLength(0);
+    expect(enemy.slowTimer).toBeGreaterThan(0);
+  });
+
+  it("Ward Beacon adds Range to a nearby Hex Gun", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    state.selectedBuildType = "beacon";
+    expect(buildTower(state, { x: 280, y: 80 }, silentPorts).ok).toBe(true);
+    const gun = state.towers[0];
+    const base = TOWER_TYPES.basic.range;
+    expect(getEffectiveStats(state, gun).range).toBeGreaterThan(base);
   });
 });

@@ -1,7 +1,7 @@
 import { useRef, useState, type MouseEvent } from "react";
 import { GearSix, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import type { HudCommands } from "../game/hud/commands";
-import type { UiSnapshot } from "../game/types";
+import type { LayoutId, UiSnapshot } from "../game/types";
 
 function statusLabel(snapshot: UiSnapshot): string {
   if (snapshot.gameOver) return "RIFT";
@@ -27,9 +27,11 @@ export function Header({
   const settingsRef = useRef<HTMLDialogElement>(null);
   const helpRef = useRef<HTMLDialogElement>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmLayout, setConfirmLayout] = useState<LayoutId | null>(null);
 
   const label = statusLabel(snapshot);
   const canStart = snapshot.canStartWave && !snapshot.paused;
+  const layoutNeedsConfirm = snapshot.wave > 0 || snapshot.towerCount > 0;
 
   const onStatus = () => {
     if (snapshot.gameOver) return;
@@ -42,6 +44,18 @@ export function Header({
 
   const closeOnBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === event.currentTarget) event.currentTarget.close();
+  };
+
+  const pickLayout = (id: LayoutId) => {
+    if (id === snapshot.layoutId) return;
+    if (layoutNeedsConfirm && confirmLayout !== id) {
+      setConfirmLayout(id);
+      window.setTimeout(() => setConfirmLayout(null), 2200);
+      return;
+    }
+    setConfirmLayout(null);
+    actions?.selectLayout(id);
+    settingsRef.current?.close();
   };
 
   return (
@@ -62,6 +76,7 @@ export function Header({
           aria-label="Settings"
           onClick={() => {
             setConfirmReset(false);
+            setConfirmLayout(null);
             settingsRef.current?.showModal();
           }}
         >
@@ -103,6 +118,42 @@ export function Header({
           </button>
           <button
             type="button"
+            className="action secondary"
+            onClick={() => actions?.setReducedMotion(!snapshot.reducedMotion)}
+            aria-pressed={snapshot.reducedMotion}
+            aria-label={
+              snapshot.reducedMotion ? "Turn motion on" : "Reduce motion"
+            }
+          >
+            {snapshot.reducedMotion ? "Motion On" : "Reduce Motion"}
+          </button>
+          <p className="settings-label" id="layout-label">
+            Road plan. Starts a new Watch.
+          </p>
+          <div className="layout-row" role="group" aria-labelledby="layout-label">
+            {snapshot.layouts.map((layout) => {
+              const armed = confirmLayout === layout.id;
+              const current = snapshot.layoutId === layout.id;
+              return (
+                <button
+                  key={layout.id}
+                  type="button"
+                  className={`speed-pill${current ? " active" : ""}`}
+                  aria-pressed={current}
+                  aria-label={
+                    armed
+                      ? `Confirm ${layout.name}. Starts a new Watch.`
+                      : `${layout.name} Road plan`
+                  }
+                  onClick={() => pickLayout(layout.id)}
+                >
+                  {armed ? "Confirm" : layout.name}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
             className="action danger"
             onClick={() => {
               if (!confirmReset) {
@@ -137,19 +188,17 @@ export function Header({
           How to play
         </h2>
         <p className="help-copy">
-          Click the board to place a tower. Drag a placed tower to move it. Click
-          ↑ to upgrade. Drag empty ground to pan. Pick a tower in the Armory, or
-          press <kbd>4</kbd> for Scout. Scroll to zoom.{" "}
+          Click empty ground to place. Click a tower to select. Drag a selected
+          tower to move it. Click ↑ to upgrade. Drag empty ground to pan. Pick a
+          tower in the Armory, or press <kbd>V</kbd> for Scout. Scroll to zoom.{" "}
           <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>
           <kbd>D</kbd> also pan, <kbd>Home</kbd> resets the view.{" "}
           <kbd>Ctrl</kbd>+click or right-click a tower for multi-select. Speed{" "}
           <kbd>[</kbd>
-          <kbd>]</kbd>, mute <kbd>M</kbd>, towers <kbd>1</kbd>
-          <kbd>2</kbd>
-          <kbd>3</kbd>, pause <kbd>Space</kbd>, upgrade <kbd>U</kbd>, clear{" "}
-          <kbd>Esc</kbd>.
+          <kbd>]</kbd>, mute <kbd>M</kbd>, Armory <kbd>1</kbd> to <kbd>5</kbd>,
+          pause <kbd>Space</kbd>, upgrade <kbd>U</kbd>, clear <kbd>Esc</kbd>.
         </p>
         <button
           type="button"

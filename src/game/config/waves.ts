@@ -25,6 +25,11 @@ export const WAVE_PLANS: WavePlan[] = [
   { name: "Crimson Tide", count: 24, gap: 0.34, roster: ["creep", "swarm", "runner", "shade"] },
   { name: "Crown Guard", count: 18, gap: 0.4, roster: ["warden", "brute", "colossus"] },
   { name: "Overlord", count: 16, gap: 0.38, roster: ["warden", "shade", "brute"], boss: "overlord" },
+  { name: "Ember Choir", count: 22, gap: 0.34, roster: ["runner", "shade", "swarm", "creep"] },
+  { name: "Glass Tide", count: 24, gap: 0.32, roster: ["swarm", "runner", "warden"] },
+  { name: "Ash Crown", count: 20, gap: 0.36, roster: ["warden", "brute", "shade"], boss: "colossus" },
+  { name: "Night Fold", count: 26, gap: 0.3, roster: ["shade", "swarm", "runner", "creep"] },
+  { name: "Rift Crown", count: 18, gap: 0.34, roster: ["warden", "colossus", "brute"], boss: "overlord" },
 ];
 
 export function getWavePlan(wave: number): WavePlan {

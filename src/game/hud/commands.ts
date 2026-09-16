@@ -1,6 +1,6 @@
 import type { GameSpeed } from "../constants";
 import type { PointerOptions } from "../sim/pointer";
-import type { Point, TowerType } from "../types";
+import type { LayoutId, Point, TowerType } from "../types";
 
 export type { PointerOptions };
 
@@ -16,6 +16,8 @@ export interface HudCommands {
   sellSelected: () => void;
   clearSelection: () => void;
   toggleMute: () => void;
+  setReducedMotion: (on: boolean) => void;
+  selectLayout: (id: LayoutId) => void;
   handleKeyDown: (key: string, code: string, ctrlKey: boolean) => void;
 }
 

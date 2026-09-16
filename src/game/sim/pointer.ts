@@ -1,4 +1,6 @@
+import { RELOCATE_THRESHOLD } from "../constants";
 import type { WatchPorts } from "./ports";
+import { idleDrag, proposedRelocatePositions } from "./drag";
 import { refreshPreview } from "./preview";
 import {
   buildTower,
@@ -16,31 +18,30 @@ export interface PointerOptions {
   shiftKey?: boolean;
 }
 
+export { idleDrag, dragOffset, proposedRelocatePositions } from "./drag";
+
 export function cancelDrag(state: GameState): void {
-  state.drag = {
-    active: false,
-    anchorTowerId: null,
-    originPositions: new Map(),
-    currentPoint: null,
-  };
+  state.drag = idleDrag();
 }
 
-function startDrag(state: GameState, anchorId: string, point: Point): void {
+function captureOrigins(state: GameState, anchorId: string): Map<string, Point> {
   const ids = state.selectedTowerIds.has(anchorId)
     ? [...state.selectedTowerIds]
     : [anchorId];
-
   const originPositions = new Map<string, Point>();
   for (const id of ids) {
-    const tower = state.towers.find((t) => t.id === id);
+    const tower = state.towers.find((item) => item.id === id);
     if (tower) originPositions.set(id, { x: tower.x, y: tower.y });
   }
+  return originPositions;
+}
 
+function armPending(state: GameState, anchorId: string, pressPoint: Point): void {
   state.drag = {
-    active: true,
+    kind: "pending",
+    pressPoint,
     anchorTowerId: anchorId,
-    originPositions,
-    currentPoint: point,
+    originPositions: captureOrigins(state, anchorId),
   };
 }
 
@@ -63,14 +64,16 @@ export function pointerDown(
       if (next.has(clickedTower.id)) next.delete(clickedTower.id);
       else next.add(clickedTower.id);
       state.selectedTowerIds = next;
+      cancelDrag(state);
       refreshPreview(state);
       return;
     }
 
     state.selectedTowerIds = new Set([clickedTower.id]);
-
     if (options.button === 0) {
-      startDrag(state, clickedTower.id, point);
+      armPending(state, clickedTower.id, point);
+    } else {
+      cancelDrag(state);
     }
     refreshPreview(state);
     return;
@@ -79,6 +82,7 @@ export function pointerDown(
   if (options.button !== 0) return;
 
   state.selectedTowerIds = new Set();
+  cancelDrag(state);
   if (!state.selectedBuildType) {
     refreshPreview(state);
     return;
@@ -94,8 +98,20 @@ export function pointerMove(state: GameState, point: Point): void {
     state.hoveredPoint = point;
   }
 
-  if (state.drag.active) {
-    state.drag.currentPoint = point;
+  if (state.drag.kind === "pending") {
+    const dx = point.x - state.drag.pressPoint.x;
+    const dy = point.y - state.drag.pressPoint.y;
+    if (Math.hypot(dx, dy) > RELOCATE_THRESHOLD) {
+      state.drag = {
+        kind: "relocating",
+        pressPoint: state.drag.pressPoint,
+        anchorTowerId: state.drag.anchorTowerId,
+        originPositions: state.drag.originPositions,
+        currentPoint: point,
+      };
+    }
+  } else if (state.drag.kind === "relocating") {
+    state.drag = { ...state.drag, currentPoint: point };
   }
   refreshPreview(state);
 }
@@ -104,36 +120,20 @@ export function pointerUp(
   state: GameState,
   point: Point,
   ports: WatchPorts,
-  wasDragging: boolean,
 ): void {
-  if (!wasDragging || !state.drag.active) {
+  if (state.drag.kind !== "relocating") {
     cancelDrag(state);
     refreshPreview(state);
     return;
   }
 
-  const { drag } = state;
-  const anchorOrigin = drag.anchorTowerId
-    ? drag.originPositions.get(drag.anchorTowerId)
-    : null;
-
-  if (anchorOrigin && drag.anchorTowerId) {
-    const dx = point.x - anchorOrigin.x;
-    const dy = point.y - anchorOrigin.y;
-
-    if (Math.hypot(dx, dy) > 4) {
-      const newPositions = new Map<string, Point>();
-      for (const [id, origin] of drag.originPositions) {
-        newPositions.set(id, { x: origin.x + dx, y: origin.y + dy });
-      }
-
-      const validation = validateTowerMove(state, newPositions);
-      if (validation.ok) {
-        moveTowers(state, newPositions, ports);
-      } else {
-        ports.notify(validation.reason);
-      }
-    }
+  const drag = { ...state.drag, currentPoint: point };
+  const newPositions = proposedRelocatePositions(drag);
+  const validation = validateTowerMove(state, newPositions);
+  if (validation.ok) {
+    moveTowers(state, newPositions, ports);
+  } else {
+    ports.notify(validation.reason);
   }
 
   cancelDrag(state);

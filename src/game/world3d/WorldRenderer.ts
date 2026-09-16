@@ -3,7 +3,10 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH, PATH } from "../constants";
+import { DEFAULT_LAYOUT_ID, LOGICAL_HEIGHT, LOGICAL_WIDTH } from "../constants";
+import { getLayout } from "../config/layouts";
+import { getEffectiveStats } from "../config/towerStats";
+import { dragOffset } from "../sim/drag";
 import type { BoardHit, BoardHitTest } from "../sim/boardHit";
 import type { GameState, Point } from "../types";
 import { logicalRadius, logicalToWorld, WORLD_SCALE, worldToLogical } from "./coords";
@@ -77,6 +80,11 @@ export class WorldRenderer implements BoardHitTest {
   private frustum = 12.4;
   private keyLight: THREE.DirectionalLight;
   private lavaMats: THREE.MeshStandardMaterial[] = [];
+  private roadRoot = new THREE.Group();
+  private portalRoot = new THREE.Group();
+  private layoutId = "";
+  private currentRoad: readonly Point[] = [];
+  private reducedMotion = false;
 
   private towers = new Map<string, THREE.Group>();
   private enemies = new Map<number, THREE.Group>();
@@ -130,9 +138,11 @@ export class WorldRenderer implements BoardHitTest {
     this.scene.add(new THREE.AmbientLight(0x3a3834, 0.82));
     this.applyCamera();
 
+    this.currentRoad = getLayout(DEFAULT_LAYOUT_ID).road;
     this.ground = this.buildTerrain();
-    this.buildPath();
-    this.buildPortals();
+    this.scene.add(this.roadRoot, this.portalRoot);
+    this.rebuildRoad(this.currentRoad);
+    this.layoutId = DEFAULT_LAYOUT_ID;
 
     this.ghostPad = new THREE.Mesh(
       new THREE.CylinderGeometry(0.85, 0.95, 0.08, 6),
@@ -149,7 +159,7 @@ export class WorldRenderer implements BoardHitTest {
       new THREE.MeshBasicMaterial({
         color: TEAL,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.42,
         side: THREE.DoubleSide,
       }),
     );
@@ -203,6 +213,11 @@ export class WorldRenderer implements BoardHitTest {
     this.frustum = 12.4;
     this.applyCamera();
     this.resize();
+  }
+
+  setReducedMotion(on: boolean): void {
+    this.reducedMotion = on;
+    this.bloom.strength = on ? 0 : 0.28;
   }
 
   dispose(): void {
@@ -276,6 +291,10 @@ export class WorldRenderer implements BoardHitTest {
 
   sync(state: GameState): void {
     const t = this.clock.getElapsedTime();
+    if (state.layoutId !== this.layoutId) {
+      this.rebuildRoad(state.road);
+      this.layoutId = state.layoutId;
+    }
     this.syncTowers(state);
     this.syncEnemies(state);
     this.syncProjectiles(state);
@@ -283,6 +302,8 @@ export class WorldRenderer implements BoardHitTest {
     this.syncFloatingTexts(state);
     this.syncGhost(state);
     this.applyShake(state);
+
+    if (this.reducedMotion) return;
 
     const pulse = 0.46 + Math.sin(t * 1.4) * 0.08;
     for (const mat of this.lavaMats) mat.emissiveIntensity = pulse;
@@ -350,6 +371,7 @@ export class WorldRenderer implements BoardHitTest {
 
   private applyShake(state: GameState): void {
     this.camera.position.copy(this.cameraBase);
+    if (this.reducedMotion) return;
     if (state.shake.time > 0 && state.shake.mag > 0) {
       const amp = state.shake.mag * 0.04 * Math.min(1, state.shake.time * 4);
       this.camera.position.x += (Math.random() * 2 - 1) * amp;
@@ -402,9 +424,10 @@ export class WorldRenderer implements BoardHitTest {
 
   private nearPath(wx: number, wz: number, pad: number): boolean {
     const p = worldToLogical(wx, wz);
-    for (let i = 0; i < PATH.length - 1; i += 1) {
-      const a = PATH[i];
-      const b = PATH[i + 1];
+    const road = this.currentRoad;
+    for (let i = 0; i < road.length - 1; i += 1) {
+      const a = road[i];
+      const b = road[i + 1];
       const abx = b.x - a.x;
       const aby = b.y - a.y;
       const t = Math.max(
@@ -418,7 +441,24 @@ export class WorldRenderer implements BoardHitTest {
     return false;
   }
 
-  private buildPath(): void {
+  private clearGroup(group: THREE.Group): void {
+    while (group.children.length > 0) {
+      const child = group.children[0];
+      group.remove(child);
+      disposeObject(child);
+    }
+  }
+
+  private rebuildRoad(road: readonly Point[]): void {
+    this.currentRoad = road;
+    this.clearGroup(this.roadRoot);
+    this.clearGroup(this.portalRoot);
+    this.lavaMats = [];
+    this.buildPath(road);
+    this.buildPortals(road);
+  }
+
+  private buildPath(road: readonly Point[] = this.currentRoad): void {
     const width = logicalRadius(28) * 2;
     const lavaWidth = width * 0.7;
     const stoneMat = new THREE.MeshStandardMaterial({
@@ -436,9 +476,9 @@ export class WorldRenderer implements BoardHitTest {
     });
     this.lavaMats.push(lavaMat);
 
-    for (let i = 0; i < PATH.length - 1; i += 1) {
-      const a = logicalToWorld(PATH[i].x, PATH[i].y, 0.04);
-      const b = logicalToWorld(PATH[i + 1].x, PATH[i + 1].y, 0.04);
+    for (let i = 0; i < road.length - 1; i += 1) {
+      const a = logicalToWorld(road[i].x, road[i].y, 0.04);
+      const b = logicalToWorld(road[i + 1].x, road[i + 1].y, 0.04);
       const dx = b.x - a.x;
       const dz = b.z - a.z;
       const len = Math.hypot(dx, dz) + 0.35;
@@ -449,12 +489,12 @@ export class WorldRenderer implements BoardHitTest {
       rim.position.copy(mid);
       rim.rotation.y = yaw;
       rim.receiveShadow = true;
-      this.scene.add(rim);
+      this.roadRoot.add(rim);
 
       const lava = new THREE.Mesh(new THREE.BoxGeometry(lavaWidth, 0.08, len - 0.08), lavaMat);
       lava.position.set(mid.x, 0.14, mid.z);
       lava.rotation.y = yaw;
-      this.scene.add(lava);
+      this.roadRoot.add(lava);
 
       const cap = new THREE.Mesh(
         new THREE.CylinderGeometry(width * 0.48, width * 0.48, 0.16, 8),
@@ -462,20 +502,21 @@ export class WorldRenderer implements BoardHitTest {
       );
       cap.position.copy(a);
       cap.position.y = 0.05;
-      this.scene.add(cap);
+      this.roadRoot.add(cap);
     }
   }
 
-  private buildPortals(): void {
-    const start = PATH[0];
-    const end = PATH[PATH.length - 1];
+  private buildPortals(road: readonly Point[] = this.currentRoad): void {
+    if (road.length === 0) return;
+    const start = road[0];
+    const end = road[road.length - 1];
     const inn = makePortal("IN");
     const out = makePortal("OUT");
     inn.position.copy(logicalToWorld(start.x + 36, start.y, 0));
     out.position.copy(logicalToWorld(end.x - 36, end.y, 0));
     inn.rotation.y = Math.PI / 2;
     out.rotation.y = -Math.PI / 2;
-    this.scene.add(inn, out);
+    this.portalRoot.add(inn, out);
   }
 
   private removeTowerMesh(id: string, mesh: THREE.Group): void {
@@ -506,7 +547,14 @@ export class WorldRenderer implements BoardHitTest {
         this.towers.set(tower.id, mesh);
         this.scene.add(mesh);
       }
-      const pos = logicalToWorld(tower.x, tower.y, 0);
+      const offset = dragOffset(state.drag);
+      const moving =
+        offset &&
+        state.drag.kind === "relocating" &&
+        state.drag.originPositions.has(tower.id);
+      const x = moving && offset ? tower.x + offset.x : tower.x;
+      const y = moving && offset ? tower.y + offset.y : tower.y;
+      const pos = logicalToWorld(x, y, 0);
       mesh.position.copy(pos);
       const aim = mesh.getObjectByName("aim");
       if (aim) aim.rotation.y = -tower.angle;
@@ -528,7 +576,14 @@ export class WorldRenderer implements BoardHitTest {
     for (const id of selected) {
       const tower = state.towers.find((t) => t.id === id);
       if (!tower) continue;
-      const color = tower.type === "basic" ? ORANGE : TEAL;
+      const offset = dragOffset(state.drag);
+      const moving =
+        offset &&
+        state.drag.kind === "relocating" &&
+        state.drag.originPositions.has(tower.id);
+      const x = moving && offset ? tower.x + offset.x : tower.x;
+      const y = moving && offset ? tower.y + offset.y : tower.y;
+      const color = parseCssColor(tower.stats.color);
       let fx = this.selectionFx.get(id);
       if (!fx) {
         const ring = new THREE.Mesh(
@@ -553,12 +608,12 @@ export class WorldRenderer implements BoardHitTest {
         fx.color = color;
       }
 
-      const range = logicalRadius(tower.stats.range);
+      const range = logicalRadius(getEffectiveStats(state, tower).range);
       fx.ring.scale.set(range, range, 1);
-      fx.ring.position.copy(logicalToWorld(tower.x, tower.y, 0.08));
-      fx.chevron.position.copy(
-        logicalToWorld(tower.x, tower.y, tower.type === "sniper" ? 4.35 : 2.35),
-      );
+      fx.ring.position.copy(logicalToWorld(x, y, 0.08));
+      const chevronH =
+        tower.type === "sniper" ? 4.35 : tower.type === "beacon" ? 3.1 : 2.35;
+      fx.chevron.position.copy(logicalToWorld(x, y, chevronH));
       fx.chevron.lookAt(this.camera.position);
     }
   }
@@ -585,7 +640,9 @@ export class WorldRenderer implements BoardHitTest {
       mesh.position.copy(logicalToWorld(enemy.x, enemy.y, 0));
       const pulse = enemy.flash > 0.4 ? 1.12 : 1;
       mesh.scale.setScalar(enemy.scale * pulse);
-      const waypoint = PATH[Math.min(enemy.waypointIndex, PATH.length - 1)];
+      const waypoint =
+        state.road[Math.min(enemy.waypointIndex, state.road.length - 1)] ??
+        state.road[0];
       mesh.rotation.y = -Math.atan2(waypoint.y - enemy.y, waypoint.x - enemy.x);
       const hp = mesh.getObjectByName("hp");
       if (hp) hp.scale.x = Math.max(0.08, enemy.hp / enemy.maxHp);

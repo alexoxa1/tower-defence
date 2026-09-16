@@ -50,6 +50,14 @@ _Avoid_: Mortar, Cannon
 The long-range tower.
 _Avoid_: Rail, Sniper
 
+**Ward Beacon**:
+The support tower. Nearby towers gain Range.
+_Avoid_: Village, aura tower, buff tower
+
+**Frost Lantern**:
+The Slow aura tower. It does not fire projectiles.
+_Avoid_: Ice, freeze tower
+
 **Level**:
 The rank of a placed tower, from 1 to 10.
 _Avoid_: Tier, rank, star
@@ -154,8 +162,12 @@ A named assault with a roster and sometimes a boss.
 _Avoid_: Round, level, stage
 
 **Campaign**:
-The first fifteen named waves. Later waves reuse those plans with more enemies.
+The first twenty named waves. Later waves reuse those plans with more enemies.
 _Avoid_: Mission, chapter, act
+
+**Layout**:
+A named Road plan for a Watch. The HUD shows the name, not the waypoints.
+_Avoid_: Map, stage, level select
 
 **Hold**:
 The named idle before wave 1. Not a pause.

@@ -1,6 +1,7 @@
 import { MAX_TOWER_LEVEL, TOWER_TYPES } from "../constants";
 import {
   canUpgradeTower,
+  getEffectiveStats,
   getTowerStats,
   getUpgradeCost,
 } from "../config/towerStats";
@@ -157,8 +158,14 @@ export function sellTowers(
   return { totalRefund };
 }
 
-export function towerToSummary(tower: Tower, gold: number) {
-  const stats = getTowerStats(tower.type, tower.level);
+export function towerToSummary(
+  tower: Tower,
+  gold: number,
+  state?: Pick<GameState, "towers">,
+) {
+  const stats = state
+    ? getEffectiveStats(state, tower)
+    : getTowerStats(tower.type, tower.level);
   const upgradeCost = getUpgradeCost(tower);
   return {
     id: tower.id,
