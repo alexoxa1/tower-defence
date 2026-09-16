@@ -81,22 +81,24 @@ export function buildTower(
   state: GameState,
   point: Point,
   ports: WatchPorts,
+  type?: TowerType,
 ): { ok: boolean } {
-  if (!state.selectedBuildType) {
+  const buildType = type ?? state.selectedBuildType;
+  if (!buildType) {
     ports.notify("Pick a tower in the Armory, or drag to pan.");
     return { ok: false };
   }
-  const validation = validatePlacement(state, point, state.selectedBuildType);
+  const validation = validatePlacement(state, point, buildType);
   if (!validation.ok) {
     ports.notify(validation.reason);
     return { ok: false };
   }
 
-  const config = TOWER_TYPES[state.selectedBuildType];
+  const config = TOWER_TYPES[buildType];
   const tower = new Tower(
     point.x,
     point.y,
-    state.selectedBuildType,
+    buildType,
     nextTowerId(state),
   );
   state.towers.push(tower);

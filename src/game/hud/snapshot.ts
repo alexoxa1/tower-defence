@@ -5,7 +5,13 @@ import { getWaveTitle } from "../config/waves";
 import { towerToSummary } from "../systems/upgrade";
 import { canStartWave } from "../systems/waves";
 import { refreshPreview } from "../sim/preview";
-import type { GameState, TowerType, UiSnapshot } from "../types";
+import type {
+  GameState,
+  QuickMenuAnchor,
+  QuickMenuSnapshot,
+  TowerType,
+  UiSnapshot,
+} from "../types";
 
 export function canAffordBuild(state: GameState): Record<TowerType, boolean> {
   const result = {} as Record<TowerType, boolean>;
@@ -15,6 +21,28 @@ export function canAffordBuild(state: GameState): Record<TowerType, boolean> {
   return result;
 }
 
+function resolveQuickMenu(
+  state: GameState,
+  anchor: QuickMenuAnchor | null | undefined,
+): QuickMenuSnapshot | null {
+  if (!anchor) return null;
+  const target = anchor.target;
+  if (target.kind === "ground") {
+    return { x: anchor.x, y: anchor.y, target };
+  }
+  const tower = state.towers.find((item) => item.id === target.towerId);
+  if (!tower) return null;
+  return {
+    x: anchor.x,
+    y: anchor.y,
+    target: {
+      kind: "tower",
+      towerId: tower.id,
+      tower: towerToSummary(tower, state.gold, state),
+    },
+  };
+}
+
 export function buildUiSnapshot(
   state: GameState,
   extras: {
@@ -22,6 +50,7 @@ export function buildUiSnapshot(
     muted: boolean;
     isPanning: boolean;
     reducedMotion: boolean;
+    quickMenu?: QuickMenuAnchor | null;
   },
 ): UiSnapshot {
   refreshPreview(state);
@@ -59,5 +88,6 @@ export function buildUiSnapshot(
     layouts: layoutSummaries(),
     reducedMotion: extras.reducedMotion,
     towerCount: state.towers.length,
+    quickMenu: resolveQuickMenu(state, extras.quickMenu),
   };
 }

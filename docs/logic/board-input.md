@@ -27,6 +27,10 @@ Empty-ground primary press:
 | Mouse / fine | Scout or build | Pan pending | Pan after 4px slop | Tap places or clears if slop not exceeded |
 | Touch / pen | Scout, tower, multi | Pan pending | Pan after 16px slop | Tap if slop not exceeded |
 | Touch / pen | Build | Aim | Ghost follows the finger. No pan | Places at the lift point |
+| Mouse right (button 2) | Any | Pan pending | Pan after slop | No-drag tap opens the board menu at the pointer. Does not toggle Link |
+| Touch / pen long-press | Any | Timer 450ms | Travel past slop cancels | Timer fires: same board menu. Lift before the timer keeps the usual tap |
+
+Ctrl/Meta+click still toggles Link on a tower. Right-click no longer does; the menu has Link / Unlink.
 
 Two fingers always pinch-zoom (distance) and pan (midpoint). A pinch cancels a pending place and a pending relocate. The leftover finger after a pinch continues as pan and does not click.
 
@@ -40,7 +44,10 @@ HUD `+` / `−` / home call `HudCommands.zoomIn`, `zoomOut`, and `resetView`. Wh
 
 - Press uses the click point, not the tower center. Mixing those two was the tap-to-move bug.
 - Relocate costs no gold (ADR 0003).
-- Multi-select (right-click or Ctrl/Meta) toggles selection and does not arm relocate.
+- Multi-select (Ctrl/Meta+click, or Link in the board menu) toggles selection and does not arm relocate.
+- Right-click without drag opens the board menu. Right-drag still pans.
+- Touch/pen long-press (~450ms, under slop) opens the same menu. Move or lift before the timer cancels it.
+- Escape, click outside, scroll/pan, or a menu action closes the board menu.
 - Build ghost is hidden while `pending` or `relocating`. Relocate uses the same `placementPreview` ghost at the proposed point.
 - HUD `isDragging` is true only for `relocating`, so a tap does not show a grab cursor.
 - Pan does not move the camera until travel exceeds the pointer slop. A tap does not nudge the view.

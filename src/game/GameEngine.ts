@@ -18,8 +18,9 @@ import { refreshPreview } from "./sim/preview";
 import { ScreenPointerHub } from "./sim/screenPointer";
 import { startWave } from "./systems/waves";
 import { sellTower, sellTowers, upgradeTower, upgradeTowers } from "./systems/upgrade";
+import { buildTower } from "./systems/placement";
 import { WorldRenderer } from "./world3d/WorldRenderer";
-import type { GameState, LayoutId, TowerType, UiSnapshot } from "./types";
+import type { GameState, LayoutId, QuickMenuAnchor, TowerType, UiSnapshot } from "./types";
 
 export type { GameActions, PointerOptions } from "./hud/commands";
 
@@ -37,6 +38,7 @@ export class GameEngine {
   private ports: WatchPorts;
   private hudKey = "";
   private pointerHub: ScreenPointerHub;
+  private quickMenu: QuickMenuAnchor | null = null;
 
   readonly actions: GameActions;
 
@@ -70,6 +72,8 @@ export class GameEngine {
         cancelDrag(this.state);
         refreshPreview(this.state);
       },
+      openQuickMenu: (x, y) => this.openQuickMenu(x, y),
+      closeQuickMenu: () => this.closeQuickMenu(),
     });
 
     this.actions = {
@@ -88,15 +92,21 @@ export class GameEngine {
       handlePointerMove: (point) => {
         pointerMove(this.state, point);
       },
-      handleWheel: (deltaY) => this.world.zoom(deltaY),
+      handleWheel: (deltaY) => {
+        this.world.zoom(deltaY);
+        this.closeQuickMenu();
+      },
       toggleMute: () => this.toggleMute(),
       setReducedMotion: (on) => this.setReducedMotion(on),
       selectLayout: (id) => this.selectLayout(id),
       handleKeyDown: (key, code, ctrlKey) =>
         this.handleKeyDown(key, code, ctrlKey),
-      zoomIn: () => this.world.zoom(-120),
-      zoomOut: () => this.world.zoom(120),
-      resetView: () => this.world.resetView(),
+      zoomIn: () => this.zoomBy(-120),
+      zoomOut: () => this.zoomBy(120),
+      resetView: () => this.resetView(),
+      closeQuickMenu: () => this.closeQuickMenu(),
+      toggleTowerLink: (id) => this.toggleTowerLink(id),
+      buildTowerAt: (type, point) => this.buildTowerAt(type, point),
     };
 
     this.setupCanvas();
@@ -132,6 +142,7 @@ export class GameEngine {
         muted: this.audio.muted,
         isPanning: this.pointerHub.isPanning(),
         reducedMotion: this.reducedMotion,
+        quickMenu: this.quickMenu,
       }),
     );
     this.hudKey = this.snapshotKey();
@@ -162,6 +173,9 @@ export class GameEngine {
       this.reducedMotion,
       s.layoutId,
       this.pointerHub.isPanning(),
+      this.quickMenu
+        ? `${this.quickMenu.x},${this.quickMenu.y},${this.quickMenu.target.kind}`
+        : "",
     ].join("|");
   }
 
@@ -173,6 +187,61 @@ export class GameEngine {
       this.toastMessage = null;
       this.emitSnapshot();
     }, 1600);
+  }
+
+  private closeQuickMenu(): void {
+    if (!this.quickMenu) return;
+    this.quickMenu = null;
+    this.emitSnapshot();
+  }
+
+  private openQuickMenu(clientX: number, clientY: number): void {
+    const hit = this.board.hit(clientX, clientY);
+    if (hit.kind === "tower" || hit.kind === "upgrade") {
+      this.quickMenu = {
+        x: clientX,
+        y: clientY,
+        target: { kind: "tower", towerId: hit.towerId },
+      };
+    } else {
+      const point =
+        hit.kind === "ground" ? hit.point : this.board.toLogical(clientX, clientY);
+      if (!point) return;
+      this.quickMenu = {
+        x: clientX,
+        y: clientY,
+        target: { kind: "ground", point },
+      };
+    }
+    this.emitSnapshot();
+  }
+
+  private toggleTowerLink(id: string): void {
+    const next = new Set(this.state.selectedTowerIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.state.selectedTowerIds = next;
+    cancelDrag(this.state);
+    refreshPreview(this.state);
+    this.quickMenu = null;
+    this.emitSnapshot();
+  }
+
+  private buildTowerAt(type: TowerType, point: { x: number; y: number }): void {
+    this.quickMenu = null;
+    buildTower(this.state, point, this.ports, type);
+    refreshPreview(this.state);
+    this.emitSnapshot();
+  }
+
+  private zoomBy(deltaY: number): void {
+    this.world.zoom(deltaY);
+    this.closeQuickMenu();
+  }
+
+  private resetView(): void {
+    this.world.resetView();
+    this.closeQuickMenu();
   }
 
   private toggleMute(): void {
@@ -195,6 +264,7 @@ export class GameEngine {
   }
 
   private selectLayout(id: LayoutId): void {
+    this.quickMenu = null;
     resetState(this.state, { layoutId: id });
     this.world.resetView();
     this.emitSnapshot();
@@ -202,12 +272,14 @@ export class GameEngine {
   }
 
   private resetGame(): void {
+    this.quickMenu = null;
     resetState(this.state);
     this.emitSnapshot();
     this.showToast("New Watch. Place a tower, then start the Wave.");
   }
 
   private selectBuildType(type: TowerType | null): void {
+    this.quickMenu = null;
     this.state.selectedBuildType = type;
     this.state.selectedTowerIds = new Set();
     refreshPreview(this.state);
@@ -215,22 +287,26 @@ export class GameEngine {
   }
 
   private doStartWave(): void {
+    this.quickMenu = null;
     startWave(this.state, this.ports);
     this.emitSnapshot();
   }
 
   private togglePause(): void {
     if (this.state.gameOver) return;
+    this.quickMenu = null;
     this.state.paused = !this.state.paused;
     this.showToast(this.state.paused ? "Paused." : "Resumed.");
   }
 
   private setSpeed(speed: GameSpeed): void {
+    this.quickMenu = null;
     this.state.speed = speed;
     this.emitSnapshot();
   }
 
   private doUpgradeTower(id: string): void {
+    this.quickMenu = null;
     upgradeTower(this.state, id, this.ports);
     this.emitSnapshot();
   }
@@ -243,10 +319,12 @@ export class GameEngine {
       return;
     }
     upgradeTowers(this.state, ids, this.ports);
+    this.quickMenu = null;
     this.emitSnapshot();
   }
 
   private doSellTower(id: string): void {
+    this.quickMenu = null;
     sellTower(this.state, id, this.ports);
     this.emitSnapshot();
   }
@@ -255,10 +333,12 @@ export class GameEngine {
     const ids = [...this.state.selectedTowerIds];
     if (ids.length === 0) return;
     sellTowers(this.state, ids, this.ports);
+    this.quickMenu = null;
     this.emitSnapshot();
   }
 
   private clearSelection(): void {
+    this.quickMenu = null;
     clearBoardSelection(this.state);
     this.emitSnapshot();
   }
@@ -276,6 +356,10 @@ export class GameEngine {
   }
 
   private handleKeyDown(key: string, code: string, ctrlKey: boolean): void {
+    if (this.quickMenu && key === "Escape") {
+      this.closeQuickMenu();
+      return;
+    }
     if (code === "Space") {
       this.togglePause();
       return;
@@ -305,24 +389,28 @@ export class GameEngine {
       return;
     }
     if (key === "Home") {
-      this.world.resetView();
+      this.resetView();
       return;
     }
     const panStep = 48;
     if (key === "a" || key === "A" || code === "ArrowLeft") {
       this.world.pan(-panStep, 0);
+      this.closeQuickMenu();
       return;
     }
     if (key === "d" || key === "D" || code === "ArrowRight") {
       this.world.pan(panStep, 0);
+      this.closeQuickMenu();
       return;
     }
     if (key === "w" || key === "W" || code === "ArrowUp") {
       this.world.pan(0, -panStep);
+      this.closeQuickMenu();
       return;
     }
     if (key === "s" || key === "S" || code === "ArrowDown") {
       this.world.pan(0, panStep);
+      this.closeQuickMenu();
       return;
     }
     const pickIndex = Number.parseInt(key, 10);

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import type { BoardHit } from "./boardHit";
 import type { PointerOptions } from "./pointer";
 import type { InteractionMode, Point } from "../types";
 import {
   ScreenPointerHub,
+  LONG_PRESS_MS,
   TAP_SLOP_MOUSE_PX,
   TAP_SLOP_TOUCH_PX,
   emptyGroundMode,
@@ -19,7 +20,9 @@ type Call =
   | ["down", Point, PointerOptions]
   | ["move", Point]
   | ["up", Point]
-  | ["cancel"];
+  | ["cancel"]
+  | ["menu", number, number]
+  | ["close-menu"];
 
 function createHost(mode: InteractionMode = "scout") {
   const calls: Call[] = [];
@@ -40,6 +43,8 @@ function createHost(mode: InteractionMode = "scout") {
     pointerMove: (point) => calls.push(["move", point]),
     pointerUp: (point) => calls.push(["up", point]),
     cancelDrag: () => calls.push(["cancel"]),
+    openQuickMenu: (x, y) => calls.push(["menu", x, y]),
+    closeQuickMenu: () => calls.push(["close-menu"]),
   };
   host.hitValue = hit;
   return { host, calls };
@@ -186,5 +191,69 @@ describe("ScreenPointerHub", () => {
     const hub = new ScreenPointerHub(host);
     hub.handle("down", 12, 8, mouse);
     expect(calls).toEqual([["upgrade", "t1"]]);
+  });
+
+  it("opens the board menu on a right-click without drag, not a multi-toggle", () => {
+    const { host, calls } = createHost("scout");
+    const hub = new ScreenPointerHub(host);
+    const right: PointerOptions = {
+      button: 2,
+      ctrlKey: false,
+      metaKey: false,
+      pointerType: "mouse",
+      pointerId: 1,
+    };
+    hub.handle("down", 40, 40, right);
+    hub.handle("up", 40, 40, right);
+    expect(calls).toEqual([["menu", 40, 40]]);
+  });
+
+  it("right-drags to pan and does not open the board menu", () => {
+    const { host, calls } = createHost("scout");
+    const hub = new ScreenPointerHub(host);
+    const right: PointerOptions = {
+      button: 2,
+      ctrlKey: false,
+      metaKey: false,
+      pointerType: "mouse",
+      pointerId: 1,
+    };
+    hub.handle("down", 40, 40, right);
+    hub.handle("move", 50, 40, right);
+    hub.handle("up", 50, 40, right);
+    expect(calls.some((c) => c[0] === "pan")).toBe(true);
+    expect(calls.some((c) => c[0] === "menu")).toBe(false);
+    expect(calls.some((c) => c[0] === "down")).toBe(false);
+  });
+});
+
+describe("ScreenPointerHub long-press", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("opens the board menu on a touch long-press under slop", () => {
+    vi.useFakeTimers();
+    const { host, calls } = createHost("scout");
+    const hub = new ScreenPointerHub(host);
+    const a = touch(7);
+    hub.handle("down", 40, 40, a);
+    hub.handle("move", 44, 42, a);
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(calls.some((c) => c[0] === "menu")).toBe(true);
+    hub.handle("up", 44, 42, a);
+    expect(calls.some((c) => c[0] === "down")).toBe(false);
+  });
+
+  it("cancels long-press when travel exceeds slop", () => {
+    vi.useFakeTimers();
+    const { host, calls } = createHost("scout");
+    const hub = new ScreenPointerHub(host);
+    const a = touch(7);
+    hub.handle("down", 40, 40, a);
+    hub.handle("move", 80, 40, a);
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(calls.some((c) => c[0] === "menu")).toBe(false);
+    expect(calls.some((c) => c[0] === "pan")).toBe(true);
   });
 });

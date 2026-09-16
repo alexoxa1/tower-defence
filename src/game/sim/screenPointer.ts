@@ -42,6 +42,8 @@ export function movementExceedsSlop(dx: number, dy: number, slop: number): boole
   return Math.hypot(dx, dy) > slop;
 }
 
+export const LONG_PRESS_MS = 450;
+
 export interface ScreenPointerHost {
   interactionMode(): InteractionMode;
   hit(clientX: number, clientY: number): BoardHit;
@@ -53,6 +55,8 @@ export interface ScreenPointerHost {
   pointerMove(point: Point): void;
   pointerUp(point: Point): void;
   cancelDrag(): void;
+  openQuickMenu(clientX: number, clientY: number): void;
+  closeQuickMenu(): void;
 }
 
 type Session =
@@ -70,8 +74,8 @@ type Session =
       ctrlKey: boolean;
       metaKey: boolean;
     }
-  | { kind: "aim"; pointerId: number; pointerType?: string }
-  | { kind: "board"; pointerId: number }
+  | { kind: "aim"; pointerId: number; pointerType?: string; skipPlace: boolean; originX: number; originY: number }
+  | { kind: "board"; pointerId: number; originX: number; originY: number; pointerType?: string }
   | {
       kind: "pinch";
       idA: number;
@@ -96,6 +100,7 @@ function boardOptions(options: PointerOptions | undefined): PointerOptions {
 export class ScreenPointerHub {
   private session: Session = { kind: "idle" };
   private pointers = new Map<number, { x: number; y: number }>();
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly host: ScreenPointerHost) {}
 
@@ -128,6 +133,7 @@ export class ScreenPointerHub {
     this.pointers.set(pointerId, { x: clientX, y: clientY });
 
     if (this.pointers.size >= 2) {
+      this.clearLongPress();
       this.beginPinch();
       return;
     }
@@ -140,6 +146,7 @@ export class ScreenPointerHub {
       options?.shiftKey === true
     ) {
       this.startPan(pointerId, clientX, clientY, options, button);
+      this.armLongPress(options?.pointerType);
       return;
     }
 
@@ -155,7 +162,14 @@ export class ScreenPointerHub {
 
     if (hit.kind === "tower") {
       this.host.pointerDown(hit.point, boardOptions(options));
-      this.session = { kind: "board", pointerId };
+      this.session = {
+        kind: "board",
+        pointerId,
+        originX: clientX,
+        originY: clientY,
+        pointerType: options?.pointerType,
+      };
+      this.armLongPress(options?.pointerType);
       return;
     }
 
@@ -172,14 +186,19 @@ export class ScreenPointerHub {
         kind: "aim",
         pointerId,
         pointerType: options?.pointerType,
+        skipPlace: false,
+        originX: clientX,
+        originY: clientY,
       };
       const point =
         hit.kind === "ground" ? hit.point : this.host.toLogical(clientX, clientY);
       if (point) this.host.pointerMove(point);
+      this.armLongPress(options?.pointerType);
       return;
     }
 
     this.startPan(pointerId, clientX, clientY, options, button);
+    this.armLongPress(options?.pointerType);
   }
 
   private onMove(clientX: number, clientY: number, pointerId: number): void {
@@ -212,6 +231,8 @@ export class ScreenPointerHub {
         return;
       }
       if (movementExceedsSlop(dx, dy, this.session.slop)) {
+        this.clearLongPress();
+        this.host.closeQuickMenu();
         this.session.moved = true;
         this.host.pan(dx, dy);
         this.session.x = clientX;
@@ -224,6 +245,18 @@ export class ScreenPointerHub {
       (this.session.kind === "aim" || this.session.kind === "board") &&
       this.session.pointerId === pointerId
     ) {
+      if (this.longPressTimer !== null) {
+        const slop = tapSlopPx(this.session.pointerType);
+        if (
+          movementExceedsSlop(
+            clientX - this.session.originX,
+            clientY - this.session.originY,
+            slop,
+          )
+        ) {
+          this.clearLongPress();
+        }
+      }
       const point = this.host.toLogical(clientX, clientY);
       if (point) this.host.pointerMove(point);
       else this.host.pointerMove({ x: -999, y: -999 });
@@ -238,6 +271,7 @@ export class ScreenPointerHub {
 
   private onUp(clientX: number, clientY: number, pointerId: number): void {
     this.pointers.delete(pointerId);
+    this.clearLongPress();
 
     if (this.session.kind === "pinch") {
       if (this.pointers.size >= 2) {
@@ -268,6 +302,10 @@ export class ScreenPointerHub {
       const session = this.session;
       this.session = { kind: "idle" };
       if (!session.moved && !session.suppressClick) {
+        if (session.button === 2) {
+          this.host.openQuickMenu(clientX, clientY);
+          return;
+        }
         this.dispatchTap(clientX, clientY, session);
       }
       return;
@@ -275,7 +313,12 @@ export class ScreenPointerHub {
 
     if (this.session.kind === "aim" && this.session.pointerId === pointerId) {
       const pointerType = this.session.pointerType;
+      const skipPlace = this.session.skipPlace;
       this.session = { kind: "idle" };
+      if (skipPlace) {
+        this.host.pointerMove({ x: -999, y: -999 });
+        return;
+      }
       const point = this.resolvePoint(clientX, clientY);
       if (point) {
         this.host.pointerDown(point, {
@@ -318,7 +361,35 @@ export class ScreenPointerHub {
     };
   }
 
+  private armLongPress(pointerType: string | undefined): void {
+    this.clearLongPress();
+    if (!isCoarsePointer(pointerType)) return;
+    const sessionKind = this.session.kind;
+    const pointerId =
+      sessionKind === "pan" || sessionKind === "aim" || sessionKind === "board"
+        ? this.session.pointerId
+        : null;
+    if (pointerId === null) return;
+    this.longPressTimer = setTimeout(() => {
+      this.longPressTimer = null;
+      const pos = this.pointers.get(pointerId);
+      if (!pos) return;
+      if (this.session.kind === "idle" || this.session.kind === "pinch") return;
+      this.host.openQuickMenu(pos.x, pos.y);
+      if (this.session.kind === "pan") this.session.suppressClick = true;
+      if (this.session.kind === "aim") this.session.skipPlace = true;
+    }, LONG_PRESS_MS);
+  }
+
+  private clearLongPress(): void {
+    if (this.longPressTimer === null) return;
+    clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+  }
+
   private beginPinch(): void {
+    this.clearLongPress();
+    this.host.closeQuickMenu();
     if (this.session.kind === "aim") {
       this.host.pointerMove({ x: -999, y: -999 });
     } else if (this.session.kind === "board") {

@@ -16,3 +16,17 @@ Enemies: Creep, Runner, Brute, Swarm, Warden, Shade, Colossus, Overlord.
 Lose state title: Rift Broken.
 
 Small screens keep the same tokens. Layout stacks the command rack under the board when the viewport is narrow or short. Coarse pointers get 44px targets and no hover-only affordances. Board gestures for touch are in `docs/design/touch-and-small-screens.md`.
+
+## Glass
+
+HUD chrome is liquid glass over the midnight board. Amber `--accent` stays the only accent.
+
+Tokens live in `src/styles/tokens.css`: `--glass-fill`, `--glass-bg`, `--glass-highlight`, `--glass-edge`, `--glass-blur`.
+
+Rules:
+
+- Translucent gradient fill plus `backdrop-filter: blur() saturate()` on a few containers only: command rack, status cluster, dialogs, board menu, auth card.
+- 1px inner light (`inset` box-shadow) and a top specular sheen (`::before` gradient). Soft outer shadow for depth.
+- Children (icon buttons, stats, Armory rows, speed pills) inherit the look without a second backdrop-filter.
+- `prefers-reduced-transparency: reduce` and `html[data-reduced-motion="true"]` drop blur for a solid `--panel-solid` fill.
+- Compact viewports use a smaller blur. Do not put backdrop-filter on every chip.

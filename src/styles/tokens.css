@@ -20,4 +20,24 @@
   --hud-radius: 2px;
   --sidebar-width: 320px;
   --touch-min: 44px;
+  --glass-fill: rgba(12, 11, 14, 0.42);
+  --glass-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(18, 16, 20, 0.38) 38%,
+    rgba(8, 8, 10, 0.62) 100%
+  );
+  --glass-highlight: rgba(255, 255, 255, 0.34);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --glass-edge-top: rgba(255, 255, 255, 0.42);
+  --glass-blur: 16px;
+  --glass-saturate: 160%;
+  --glass-sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.04) 28%,
+    transparent 52%
+  );
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --glass-radius: 10px;
 }

@@ -60,9 +60,9 @@ export function pointerDown(
   ports: WatchPorts,
 ): void {
   if (state.gameOver) return;
+  if (options.button === 2) return;
 
-  const isMultiToggle =
-    options.button === 2 || options.ctrlKey || options.metaKey;
+  const isMultiToggle = options.ctrlKey || options.metaKey;
 
   const clickedTower = findTowerAt(state, point);
 

@@ -304,6 +304,35 @@ describe("pointer select vs relocate", () => {
     pointerMove(state, { x: origin.x + RELOCATE_THRESHOLD_COARSE + 1, y: origin.y });
     expect(state.drag.kind).toBe("relocating");
   });
+
+  it("Ctrl-click toggles Link; right-click does not", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    buildTower(state, { x: 80, y: 80 }, silentPorts);
+    const first = state.towers[0];
+    const second = state.towers[1];
+    state.selectedTowerIds = new Set([first.id]);
+
+    pointerDown(
+      state,
+      { x: second.x, y: second.y },
+      { button: 2, ctrlKey: false, metaKey: false },
+      silentPorts,
+    );
+    expect(state.selectedTowerIds.has(second.id)).toBe(false);
+    expect(state.selectedTowerIds.has(first.id)).toBe(true);
+
+    pointerDown(
+      state,
+      { x: second.x, y: second.y },
+      { button: 0, ctrlKey: true, metaKey: false },
+      silentPorts,
+    );
+    expect(state.selectedTowerIds.has(second.id)).toBe(true);
+    expect(state.selectedTowerIds.has(first.id)).toBe(true);
+  });
 });
 
 describe("layouts", () => {
@@ -341,5 +370,13 @@ describe("new Armory types", () => {
     const gun = state.towers[0];
     const base = TOWER_TYPES.basic.range;
     expect(getEffectiveStats(state, gun).range).toBeGreaterThan(base);
+  });
+
+  it("places from an explicit Armory type without a selected build", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    expect(state.selectedBuildType).toBeNull();
+    expect(buildTower(state, OPEN_GROUND, silentPorts, "basic").ok).toBe(true);
+    expect(state.towers[0].type).toBe("basic");
   });
 });

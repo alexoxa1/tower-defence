@@ -22,6 +22,9 @@ export interface HudCommands {
   zoomIn: () => void;
   zoomOut: () => void;
   resetView: () => void;
+  closeQuickMenu: () => void;
+  toggleTowerLink: (id: string) => void;
+  buildTowerAt: (type: TowerType, point: Point) => void;
 }
 
 export interface BoardInput {

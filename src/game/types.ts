@@ -122,6 +122,22 @@ export interface TowerSummary {
   spent: number;
 }
 
+export type QuickMenuTarget =
+  | { kind: "tower"; towerId: string; tower: TowerSummary }
+  | { kind: "ground"; point: Point };
+
+export interface QuickMenuSnapshot {
+  x: number;
+  y: number;
+  target: QuickMenuTarget;
+}
+
+export type QuickMenuAnchor = {
+  x: number;
+  y: number;
+  target: { kind: "tower"; towerId: string } | { kind: "ground"; point: Point };
+};
+
 export interface UiSnapshot {
   gold: number;
   lives: number;
@@ -151,6 +167,7 @@ export interface UiSnapshot {
   layouts: { id: LayoutId; name: string }[];
   reducedMotion: boolean;
   towerCount: number;
+  quickMenu: QuickMenuSnapshot | null;
 }
 
 export interface PlacementResult {

@@ -13,6 +13,7 @@ Not gyroscope. Not DeviceOrientation. The Watch does not tilt-to-pan. A sensor s
 - **Scout, one finger:** drag pans. A tap under 16px slop still counts as a tap (deselect / pick).
 - **Build, one finger:** drag aims the ghost. Lift places. The camera does not steal that drag.
 - **Two fingers:** pinch zooms, midpoint pans. Cancels a pending place.
+- **Long-press (~450ms, under slop):** opens the board menu. Move or lift before the timer cancels it.
 - **Tower press:** select, then relocate after 48 logical units (mouse stays at 16).
 - **Upgrade on the board chevron:** mouse only. Touch uses the command rack.
 - **Zoom without pinch:** `+` / `−` / home on the board HUD.

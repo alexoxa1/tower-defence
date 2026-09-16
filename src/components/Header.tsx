@@ -1,5 +1,5 @@
 import { useRef, useState, type MouseEvent } from "react";
-import { GearSix, House, Minus, Plus, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import { Eye, EyeSlash, GearSix, House, Minus, Plus, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import type { HudCommands } from "../game/hud/commands";
 import type { LayoutId, UiSnapshot } from "../game/types";
 
@@ -20,9 +20,13 @@ function statusAction(snapshot: UiSnapshot): string {
 export function Header({
   snapshot,
   actions,
+  hudHidden,
+  onToggleHud,
 }: {
   snapshot: UiSnapshot;
   actions: HudCommands | null;
+  hudHidden: boolean;
+  onToggleHud: () => void;
 }) {
   const settingsRef = useRef<HTMLDialogElement>(null);
   const helpRef = useRef<HTMLDialogElement>(null);
@@ -69,7 +73,29 @@ export function Header({
       >
         {label}
       </button>
+      <button
+        type="button"
+        className="hud-show-pill"
+        aria-label="Show HUD"
+        onClick={onToggleHud}
+      >
+        <EyeSlash size={15} weight="bold" aria-hidden="true" />
+        Show HUD
+      </button>
       <div className="hud-tools">
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={hudHidden ? "Show HUD" : "Hide HUD"}
+          aria-pressed={hudHidden}
+          onClick={onToggleHud}
+        >
+          {hudHidden ? (
+            <EyeSlash size={15} weight="bold" aria-hidden="true" />
+          ) : (
+            <Eye size={15} weight="bold" aria-hidden="true" />
+          )}
+        </button>
         <button
           type="button"
           className="icon-btn"
@@ -223,8 +249,9 @@ export function Header({
           <kbd>5</kbd> Armory, <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>
-          <kbd>D</kbd> pan, <kbd>Home</kbd> reset view, <kbd>Ctrl</kbd>+click or
-          right-click to link towers, Speed <kbd>[</kbd>
+          <kbd>D</kbd> pan, <kbd>Home</kbd> reset view, <kbd>H</kbd> hide HUD,{" "}
+          <kbd>Ctrl</kbd>+click to link towers, right-click or long-press for the
+          board menu, Speed <kbd>[</kbd>
           <kbd>]</kbd>, mute <kbd>M</kbd>, pause <kbd>Space</kbd>, upgrade{" "}
           <kbd>U</kbd>, clear <kbd>Esc</kbd>.
         </p>

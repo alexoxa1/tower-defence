@@ -108,11 +108,31 @@ body {
   padding: 16px 14px 18px;
   overflow: auto;
   overscroll-behavior: contain;
-  background:
-    linear-gradient(180deg, rgba(255, 106, 26, 0.04), transparent 18%),
-    rgba(10, 10, 10, 0.82);
-  border-left: 1px solid var(--line);
-  backdrop-filter: blur(14px);
+  position: relative;
+  isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
+  border-left: 1px solid var(--glass-edge);
+  border-radius: 0;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.ui-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--glass-sheen);
+  z-index: 0;
+}
+
+.ui-panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hud-chrome {
@@ -128,11 +148,34 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  padding: 8px;
   pointer-events: none;
+  isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.hud-tl::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .hud-tl > * {
   pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .status-box {
@@ -142,7 +185,9 @@ body {
   border-radius: var(--hud-radius);
   outline: 1px solid rgba(255, 106, 26, 0.45);
   outline-offset: 3px;
-  background: rgba(8, 8, 8, 0.78);
+  position: relative;
+  isolation: isolate;
+  background: color-mix(in srgb, var(--accent) 10%, rgba(8, 8, 8, 0.55));
   color: var(--accent);
   font-family: var(--font-display);
   font-weight: 800;
@@ -151,8 +196,18 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
     inset 0 0 0 1px rgba(255, 106, 26, 0.18),
     0 0 18px rgba(255, 106, 26, 0.12);
+}
+
+.status-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .status-box:disabled {
@@ -178,16 +233,74 @@ body {
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--line-quiet);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
   border-radius: var(--hud-radius);
-  background: rgba(12, 12, 12, 0.88);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
   cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .icon-btn:active {
   color: var(--text);
   border-color: rgba(255, 106, 26, 0.45);
+}
+
+.hud-show-pill {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--hud-radius);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.hud-show-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+}
+
+.app.is-hud-hidden .hud-show-pill {
+  display: inline-flex;
+}
+
+.app.is-hud-hidden .hud-tools,
+.app.is-hud-hidden .hud-tr,
+.app.is-hud-hidden .ui-panel {
+  display: none;
+}
+
+.app.is-hud-hidden .game-container {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .hud-tr {
@@ -196,8 +309,35 @@ body {
   right: max(16px, env(safe-area-inset-right));
   z-index: 6;
   display: flex;
-  gap: 8px;
+  gap: 2px;
+  padding: 6px;
   pointer-events: none;
+  isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.hud-tr::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+}
+
+.hud-tr > * {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .stat {
@@ -206,10 +346,11 @@ body {
   gap: 8px;
   min-width: 118px;
   padding: 10px 12px 9px;
-  background: var(--panel);
-  border: 1px solid var(--line-quiet);
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  border: 0;
   border-radius: var(--hud-radius);
-  backdrop-filter: blur(10px);
 }
 
 .stat-label {
@@ -252,6 +393,8 @@ body {
   grid-template-columns: 14px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  position: relative;
+  isolation: isolate;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
@@ -259,6 +402,31 @@ body {
   margin: 0;
   cursor: pointer;
   text-align: left;
+  border-radius: var(--hud-radius);
+}
+
+.tower-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+  opacity: 0;
+}
+
+.tower-card + .tower-card {
+  border-top: 1px solid rgba(243, 241, 236, 0.06);
+}
+
+.tower-card.selected {
+  background: rgba(255, 106, 26, 0.1);
+  border-color: rgba(255, 106, 26, 0.35);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.tower-card.selected::before {
+  opacity: 1;
 }
 
 .tower-card + .tower-card {
@@ -287,7 +455,10 @@ button.action:focus-visible,
 .speed-pill:focus-visible,
 .upgrade-bar:focus-visible,
 .skip-link:focus-visible,
-.layout-row .speed-pill:focus-visible {
+.layout-row .speed-pill:focus-visible,
+.hud-show-pill:focus-visible,
+.quick-menu-item:focus-visible,
+.quick-menu-backdrop:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -356,14 +527,33 @@ button.action:focus-visible,
 .speed-pill {
   flex: 1;
   padding: 8px 2px;
-  border: 1px solid var(--line-quiet);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
   border-radius: var(--hud-radius);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
   font-weight: 800;
   font-size: 12px;
   font-family: var(--font-mono);
   cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.speed-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+}
+
+.speed-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .speed-pill.active {
@@ -379,6 +569,8 @@ button.action:focus-visible,
 button.action {
   border: 1px solid transparent;
   padding: 11px 12px;
+  position: relative;
+  isolation: isolate;
   color: var(--accent-ink);
   background: var(--accent);
   font-family: var(--font-display);
@@ -390,6 +582,30 @@ button.action {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+button.action::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+}
+
+button.action.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-color: var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+button.action.danger {
+  background: rgba(224, 85, 85, 0.12);
+  color: #ffd4d4;
+  border-color: rgba(224, 85, 85, 0.35);
 }
 
 button.action.secondary {
@@ -533,9 +749,12 @@ button.action:disabled,
   grid-template-columns: 1fr auto 40px;
   align-items: stretch;
   padding: 0;
-  border: 1px solid var(--line-quiet);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
   border-radius: var(--hud-radius);
-  background: #121212;
+  background: rgba(18, 16, 20, 0.55);
   color: var(--teal);
   font-family: var(--font-display);
   font-weight: 800;
@@ -543,12 +762,23 @@ button.action:disabled,
   text-transform: uppercase;
   cursor: pointer;
   overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.upgrade-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--glass-sheen);
 }
 
 .upgrade-label {
   padding: 12px 12px;
   text-align: left;
   font-size: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .upgrade-cost {
@@ -558,6 +788,8 @@ button.action:disabled,
   color: var(--accent);
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
 }
 
 .upgrade-chevron {
@@ -565,6 +797,8 @@ button.action:disabled,
   place-items: center;
   background: var(--accent);
   color: var(--accent-ink);
+  position: relative;
+  z-index: 1;
 }
 
 .sell-btn {
@@ -617,17 +851,33 @@ kbd {
   gap: 12px;
   max-width: min(420px, calc(100% - 32px));
   padding: 12px 14px;
-  background: var(--panel-2);
+  isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
   color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: var(--hud-radius);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   opacity: 0;
   transform: translateY(8px);
   transition:
     opacity 180ms ease,
     transform 180ms ease;
   pointer-events: none;
+}
+
+.toast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .toast.show {
@@ -638,10 +888,14 @@ kbd {
 .toast-mark {
   color: var(--accent);
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .toast-copy {
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .toast-title,
@@ -669,6 +923,8 @@ kbd {
   color: var(--teal);
   opacity: 0.85;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .game-over-screen {
@@ -676,10 +932,29 @@ kbd {
   max-width: none;
   margin: auto;
   padding: 32px 28px;
-  border: 1px solid var(--line);
-  background: rgba(10, 10, 10, 0.96);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
   color: var(--text);
   text-align: center;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.game-over-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .game-over-screen[open] {
@@ -700,6 +975,8 @@ kbd {
   text-transform: uppercase;
   color: var(--accent);
   text-wrap: balance;
+  position: relative;
+  z-index: 1;
 }
 
 .game-over-screen p {
@@ -708,19 +985,150 @@ kbd {
   font-size: 16px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+
+.game-over-screen .action {
+  position: relative;
+  z-index: 1;
 }
 
 .hud-dialog {
   width: min(360px, calc(100% - 32px));
   padding: 18px;
-  border: 1px solid var(--line);
-  background: var(--panel-solid);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
   color: var(--text);
   overscroll-behavior: contain;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.hud-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
 }
 
 .hud-dialog h2.section-title {
   margin-top: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.hud-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.dialog-actions,
+.help-copy,
+.hud-dialog .action {
+  position: relative;
+  z-index: 1;
+}
+
+.quick-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.quick-menu {
+  position: fixed;
+  z-index: 21;
+  min-width: 252px;
+  max-width: min(280px, calc(100vw - 16px));
+  max-height: min(70vh, 480px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.quick-menu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+}
+
+.quick-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 10px;
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: var(--hud-radius);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quick-menu-item.is-danger {
+  color: #ffd4d4;
+}
+
+.quick-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.quick-menu-detail {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.quick-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .hud-dialog::backdrop {
@@ -800,10 +1208,11 @@ kbd {
 
   .ui-panel {
     border-left: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--glass-edge);
     max-height: min(34dvh, 300px);
     padding-bottom: max(14px, env(safe-area-inset-bottom));
     gap: 12px;
+    --glass-blur: 10px;
   }
 
   .hud-chrome {
@@ -816,7 +1225,34 @@ kbd {
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
+    padding: 8px;
     pointer-events: none;
+    isolation: isolate;
+    background-color: var(--glass-fill);
+    background-image: var(--glass-bg);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-top);
+    border-radius: var(--glass-radius);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      var(--glass-shadow);
+    backdrop-filter: blur(10px) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(10px) saturate(var(--glass-saturate));
+  }
+
+  .hud-chrome::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: var(--glass-sheen);
+  }
+
+  .hud-chrome > * {
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
   }
 
   .hud-tl,
@@ -826,6 +1262,23 @@ kbd {
     left: auto;
     right: auto;
     max-width: none;
+    padding: 0;
+    background: transparent;
+    background-image: none;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .hud-tl::before,
+  .hud-tr::before {
+    display: none;
+  }
+
+  .app.is-hud-hidden .game-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .hud-tl {
@@ -913,7 +1366,9 @@ kbd {
   .tower-card,
   button.action,
   .upgrade-bar,
-  .auth-signout-btn {
+  .auth-signout-btn,
+  .hud-show-pill,
+  .quick-menu-item {
     min-height: var(--touch-min);
   }
 
@@ -935,6 +1390,11 @@ kbd {
   .icon-btn:hover {
     color: var(--text);
     border-color: rgba(255, 106, 26, 0.45);
+  }
+
+  .hud-show-pill:hover,
+  .quick-menu-item:hover:not(:disabled) {
+    background: rgba(255, 106, 26, 0.1);
   }
 
   .tower-card:hover:not(:disabled) {
@@ -982,11 +1442,100 @@ html[data-reduced-motion="true"] .speed-pill:hover {
 
 @media (prefers-reduced-transparency: reduce) {
   .ui-panel,
-  .stat,
+  .hud-tl,
+  .hud-tr,
+  .hud-chrome,
   .toast,
   .status-box,
-  .game-over-screen {
+  .game-over-screen,
+  .hud-dialog,
+  .quick-menu,
+  .auth-card,
+  .auth-config,
+  .auth-signout {
     backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     background: var(--panel-solid);
+    background-image: none;
   }
+
+  .ui-panel::before,
+  .hud-tl::before,
+  .hud-tr::before,
+  .hud-chrome::before,
+  .toast::before,
+  .status-box::before,
+  .game-over-screen::before,
+  .hud-dialog::before,
+  .quick-menu::before,
+  .icon-btn::before,
+  .speed-pill::before,
+  .tower-card::before,
+  .upgrade-bar::before,
+  button.action::before,
+  .hud-show-pill::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-panel,
+  .hud-tl,
+  .hud-tr,
+  .hud-chrome,
+  .toast,
+  .status-box,
+  .game-over-screen,
+  .hud-dialog,
+  .quick-menu,
+  .auth-card,
+  .auth-config,
+  .auth-signout {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--panel-solid);
+    background-image: none;
+  }
+
+  .ui-panel::before,
+  .hud-tl::before,
+  .hud-tr::before,
+  .hud-chrome::before,
+  .toast::before,
+  .status-box::before,
+  .game-over-screen::before,
+  .hud-dialog::before,
+  .quick-menu::before {
+    display: none;
+  }
+}
+
+html[data-reduced-motion="true"] .ui-panel,
+html[data-reduced-motion="true"] .hud-tl,
+html[data-reduced-motion="true"] .hud-tr,
+html[data-reduced-motion="true"] .hud-chrome,
+html[data-reduced-motion="true"] .toast,
+html[data-reduced-motion="true"] .status-box,
+html[data-reduced-motion="true"] .game-over-screen,
+html[data-reduced-motion="true"] .hud-dialog,
+html[data-reduced-motion="true"] .quick-menu,
+html[data-reduced-motion="true"] .auth-card,
+html[data-reduced-motion="true"] .auth-config,
+html[data-reduced-motion="true"] .auth-signout {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--panel-solid);
+  background-image: none;
+}
+
+html[data-reduced-motion="true"] .ui-panel::before,
+html[data-reduced-motion="true"] .hud-tl::before,
+html[data-reduced-motion="true"] .hud-tr::before,
+html[data-reduced-motion="true"] .hud-chrome::before,
+html[data-reduced-motion="true"] .toast::before,
+html[data-reduced-motion="true"] .status-box::before,
+html[data-reduced-motion="true"] .game-over-screen::before,
+html[data-reduced-motion="true"] .hud-dialog::before,
+html[data-reduced-motion="true"] .quick-menu::before {
+  display: none;
 }

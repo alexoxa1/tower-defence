@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { GameCanvas } from "./components/GameCanvas";
 import { GameOverOverlay } from "./components/GameOverOverlay";
 import { Header } from "./components/Header";
+import { QuickMenu } from "./components/QuickMenu";
 import { SelectionPanel } from "./components/SelectionPanel";
 import { ShopPanel } from "./components/ShopPanel";
 import { StatsPanel } from "./components/StatsPanel";
@@ -18,10 +19,40 @@ import "./styles/app.css";
 
 export default function App() {
   const { snapshot, actions, canvasRef } = useGameEngine();
+  const [hudHidden, setHudHidden] = useState(false);
+
+  const toggleHud = useCallback(() => {
+    setHudHidden((hidden) => !hidden);
+    actions?.closeQuickMenu();
+  }, [actions]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!actions) return;
+      const target = e.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      if (
+        (e.key === "h" || e.key === "H") &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.repeat
+      ) {
+        e.preventDefault();
+        toggleHud();
+        return;
+      }
+      if (snapshot.quickMenu) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          actions.closeQuickMenu();
+        }
+        return;
+      }
       if (
         e.code === "Space" ||
         e.code === "ArrowUp" ||
@@ -36,15 +67,18 @@ export default function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [actions]);
+  }, [actions, snapshot.quickMenu, toggleHud]);
 
   return (
-    <main className="app">
+    <main className={hudHidden ? "app is-hud-hidden" : "app"}>
       <h1 className="visually-hidden">Citadel Watch</h1>
       <a className="skip-link" href="#board">
         Skip to board
       </a>
-      <div className="game-container">
+      <div
+        className="game-container"
+        inert={snapshot.quickMenu ? true : undefined}
+      >
         <section className="stage" id="board">
           <GameCanvas
             canvasRef={canvasRef}
@@ -54,7 +88,12 @@ export default function App() {
             interactionMode={snapshot.interactionMode}
           />
           <div className="hud-chrome">
-            <Header snapshot={snapshot} actions={actions} />
+            <Header
+              snapshot={snapshot}
+              actions={actions}
+              hudHidden={hudHidden}
+              onToggleHud={toggleHud}
+            />
             <StatsPanel snapshot={snapshot} />
           </div>
           <SignOutControl />
@@ -67,6 +106,13 @@ export default function App() {
           <SelectionPanel snapshot={snapshot} actions={actions} />
         </aside>
       </div>
+      <QuickMenu
+        snapshot={snapshot}
+        actions={actions}
+        hudHidden={hudHidden}
+        onToggleHud={toggleHud}
+        canvasRef={canvasRef}
+      />
     </main>
   );
 }
