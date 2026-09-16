@@ -35,20 +35,24 @@ export function QuickMenu({
   useLayoutEffect(() => {
     const el = menuRef.current;
     if (!el || !menu) return;
-    const rect = el.getBoundingClientRect();
-    const pad = 8;
-    let left = menu.x;
-    let top = menu.y;
-    if (left + rect.width > window.innerWidth - pad) {
-      left = Math.max(pad, window.innerWidth - rect.width - pad);
-    }
-    if (top + rect.height > window.innerHeight - pad) {
-      top = Math.max(pad, window.innerHeight - rect.height - pad);
-    }
-    if (left < pad) left = pad;
-    if (top < pad) top = pad;
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
+    const pad = 12;
+    const place = (x: number, y: number) => {
+      const rect = el.getBoundingClientRect();
+      let left = x;
+      let top = y;
+      if (left + rect.width > window.innerWidth - pad) {
+        left = Math.max(pad, window.innerWidth - rect.width - pad);
+      }
+      if (top + rect.height > window.innerHeight - pad) {
+        top = Math.max(pad, window.innerHeight - rect.height - pad);
+      }
+      if (left < pad) left = pad;
+      if (top < pad) top = pad;
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+    };
+    place(menu.x, menu.y);
+    place(parseFloat(el.style.left) || menu.x, parseFloat(el.style.top) || menu.y);
     const first = el.querySelector<HTMLButtonElement>(
       '[role="menuitem"]:not([aria-disabled="true"]):not(:disabled)',
     );
@@ -153,12 +157,14 @@ export function QuickMenu({
                 });
               }}
             >
-              <span>{item.label}</span>
+              <span className="quick-menu-label">{item.label}</span>
               {item.detail ? (
                 <span className="quick-menu-detail" translate="no">
                   {item.detail}
                 </span>
-              ) : null}
+              ) : (
+                <span className="quick-menu-detail" />
+              )}
             </button>
           ),
         )}

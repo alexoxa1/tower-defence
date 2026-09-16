@@ -10,7 +10,7 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
   const lowLives = snapshot.lives <= 5;
   return (
     <section className="hud-tr" aria-label="Watch stats">
-      <div className="stat">
+      <div className="stat" aria-label="Gold">
         <Diamond size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>
           <span className="stat-label">Gold</span>
@@ -19,7 +19,7 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className={`stat${lowLives ? " danger" : ""}`}>
+      <div className={`stat${lowLives ? " danger" : ""}`} aria-label="Lives">
         <Heart size={16} weight="fill" color="var(--teal)" aria-hidden="true" />
         <div>
           <span className="stat-label">Lives</span>
@@ -28,7 +28,7 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className="stat">
+      <div className="stat" aria-label={snapshot.waveName}>
         <Waves size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>
           <span className="stat-label">{snapshot.waveName}</span>
@@ -37,7 +37,7 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className="stat">
+      <div className="stat" aria-label="Score">
         <Skull size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>
           <span className="stat-label">Score</span>
