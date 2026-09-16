@@ -14,9 +14,11 @@ export function disposeMaterial(material: THREE.Material): void {
     "alphaMap",
     "envMap",
   ] as const;
-  const rec = material as unknown as Record<string, { dispose?: () => void } | undefined>;
+  const rec = material as unknown as Record<string, { dispose?: () => void; userData?: { shared?: boolean } } | undefined>;
   for (const key of maps) {
-    rec[key]?.dispose?.();
+    const tex = rec[key];
+    if (!tex || tex.userData?.shared) continue;
+    tex.dispose?.();
   }
   material.dispose();
 }
@@ -24,6 +26,8 @@ export function disposeMaterial(material: THREE.Material): void {
 export function disposeObject(root: THREE.Object3D): void {
   const materials = new Set<THREE.Material>();
   root.traverse((child) => {
+    const instanced = child as THREE.InstancedMesh;
+    if (instanced.isInstancedMesh) instanced.dispose();
     const mesh = child as THREE.Mesh;
     if (mesh.geometry) {
       mesh.geometry.dispose();

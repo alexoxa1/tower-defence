@@ -12,9 +12,12 @@ import { nearestIdByScreen, TOWER_PICK_SLOP_PX, UPGRADE_PICK_SLOP_PX } from "../
 import type { GameState, Point } from "../types";
 import { logicalRadius, logicalToWorld, WORLD_SCALE, worldToLogical } from "./coords";
 import { disposeObject } from "./dispose";
+import { buildFlora } from "./flora";
+import { createBoardFog, createEmbers, tickEmbers } from "./life";
 import {
   ORANGE,
   TEAL,
+  idleTower,
   makeChevron,
   makeEnemy,
   makeJaggedRock,
@@ -22,13 +25,17 @@ import {
   makeTower,
   parseCssColor,
 } from "./models";
-
-function seeded(seed: number): () => number {
-  return () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-}
+import {
+  disposeWorldTextures,
+  getGroundMap,
+  getLavaMap,
+  getRoadMap,
+  layoutSeed,
+  seeded,
+  setWorldTextureAnisotropy,
+  useWorldXZMap,
+  warmupWorldTextures,
+} from "./textures";
 
 function makeLabelTexture(text: string, color: string): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
@@ -83,9 +90,15 @@ export class WorldRenderer implements BoardHitTest {
   private lavaMats: THREE.MeshStandardMaterial[] = [];
   private roadRoot = new THREE.Group();
   private portalRoot = new THREE.Group();
+  private propRoot = new THREE.Group();
+  private floraRoot = new THREE.Group();
+  private embers: THREE.Points;
+  private windTime = { value: 0 };
+  private windAmp = { value: 0.12 };
   private layoutId = "";
   private currentRoad: readonly Point[] = [];
   private reducedMotion = false;
+  private loggedDraw = false;
 
   private towers = new Map<string, THREE.Group>();
   private enemies = new Map<number, THREE.Group>();
@@ -115,6 +128,7 @@ export class WorldRenderer implements BoardHitTest {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x14151a);
+    this.scene.fog = createBoardFog();
 
     this.camera = new THREE.OrthographicCamera(-20, 20, 16, -16, 0.1, 320);
     const d = 52;
@@ -139,11 +153,16 @@ export class WorldRenderer implements BoardHitTest {
     this.scene.add(new THREE.AmbientLight(0x3a3834, 0.82));
     this.applyCamera();
 
+    warmupWorldTextures();
+    setWorldTextureAnisotropy(Math.min(8, this.renderer.capabilities.getMaxAnisotropy()));
+
     this.currentRoad = getLayout(DEFAULT_LAYOUT_ID).road;
     this.ground = this.buildTerrain();
-    this.scene.add(this.roadRoot, this.portalRoot);
-    this.rebuildRoad(this.currentRoad);
+    this.scene.add(this.roadRoot, this.portalRoot, this.propRoot, this.floraRoot);
+    this.rebuildRoad(this.currentRoad, DEFAULT_LAYOUT_ID);
     this.layoutId = DEFAULT_LAYOUT_ID;
+    this.embers = createEmbers();
+    this.scene.add(this.embers);
 
     this.ghostPad = new THREE.Mesh(
       new THREE.CylinderGeometry(0.85, 0.95, 0.08, 6),
@@ -223,6 +242,8 @@ export class WorldRenderer implements BoardHitTest {
   setReducedMotion(on: boolean): void {
     this.reducedMotion = on;
     this.bloom.strength = on ? 0 : 0.28;
+    this.windAmp.value = on ? 0 : 0.12;
+    this.embers.visible = !on;
   }
 
   dispose(): void {
@@ -251,6 +272,7 @@ export class WorldRenderer implements BoardHitTest {
     disposeObject(this.scene);
     this.composer.dispose();
     this.renderer.dispose();
+    disposeWorldTextures();
   }
 
   toLogical(clientX: number, clientY: number): Point | null {
@@ -334,11 +356,12 @@ export class WorldRenderer implements BoardHitTest {
 
   sync(state: GameState): void {
     const t = this.clock.getElapsedTime();
+    this.windTime.value = t;
     if (state.layoutId !== this.layoutId) {
-      this.rebuildRoad(state.road);
+      this.rebuildRoad(state.road, state.layoutId);
       this.layoutId = state.layoutId;
     }
-    this.syncTowers(state);
+    this.syncTowers(state, t);
     this.syncEnemies(state);
     this.syncProjectiles(state);
     this.syncParticles(state);
@@ -348,6 +371,7 @@ export class WorldRenderer implements BoardHitTest {
 
     if (this.reducedMotion) return;
 
+    tickEmbers(this.embers, t);
     const pulse = 0.46 + Math.sin(t * 1.4) * 0.08;
     for (const mat of this.lavaMats) mat.emissiveIntensity = pulse;
 
@@ -366,7 +390,16 @@ export class WorldRenderer implements BoardHitTest {
     if (canvas.width !== w || canvas.height !== h) {
       this.resize();
     }
+    if (import.meta.env.DEV && !this.loggedDraw) {
+      this.renderer.info.autoReset = false;
+      this.renderer.info.reset();
+    }
     this.composer.render();
+    if (import.meta.env.DEV && !this.loggedDraw) {
+      this.loggedDraw = true;
+      console.info("[world3d] draw calls", this.renderer.info.render.calls);
+      this.renderer.info.autoReset = true;
+    }
   }
 
   private setPointer(clientX: number, clientY: number): void {
@@ -437,10 +470,13 @@ export class WorldRenderer implements BoardHitTest {
       pos.setY(i, Math.max(-0.2, n * 0.32 + edge * edge * 0.03));
     }
     geo.computeVertexNormals();
+    const groundMap = getGroundMap();
+    groundMap.repeat.set(8, 6);
     const mesh = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
-        color: 0x2a2b32,
+        color: 0xffffff,
+        map: groundMap,
         roughness: 0.92,
         metalness: 0.05,
         flatShading: true,
@@ -448,21 +484,37 @@ export class WorldRenderer implements BoardHitTest {
     );
     mesh.receiveShadow = true;
     this.scene.add(mesh);
+    return mesh;
+  }
 
-    const rocks = new THREE.Group();
+  private occupied(wx: number, wz: number, pad: number): boolean {
+    if (this.nearPath(wx, wz, pad)) return true;
+    const road = this.currentRoad;
+    if (road.length === 0) return true;
+    const inn = logicalToWorld(road[0].x + 36, road[0].y, 0);
+    const out = logicalToWorld(road[road.length - 1].x - 36, road[road.length - 1].y, 0);
+    const r2 = 5.2 * 5.2;
+    const dxIn = wx - inn.x;
+    const dzIn = wz - inn.z;
+    if (dxIn * dxIn + dzIn * dzIn < r2) return true;
+    const dxOut = wx - out.x;
+    const dzOut = wz - out.z;
+    return dxOut * dxOut + dzOut * dzOut < r2;
+  }
+
+  private buildRocks(layoutId: string): void {
+    const rand = seeded(90210 ^ layoutSeed(layoutId));
     for (let i = 0; i < 140; i += 1) {
       const rx = (rand() - 0.5) * 110;
       const rz = (rand() - 0.5) * 82;
-      if (this.nearPath(rx, rz, 3.4)) continue;
+      if (this.occupied(rx, rz, 3.4)) continue;
       const rock = makeJaggedRock(rand);
       const h = 0.6 + rand() * 2.4;
       rock.position.set(rx, h * 0.35, rz);
       rock.scale.setScalar(0.8 + rand() * 1.6);
       rock.rotation.set(rand() * 0.4, rand() * Math.PI, rand() * 0.3);
-      rocks.add(rock);
+      this.propRoot.add(rock);
     }
-    this.scene.add(rocks);
-    return mesh;
   }
 
   private nearPath(wx: number, wz: number, pad: number): boolean {
@@ -492,31 +544,45 @@ export class WorldRenderer implements BoardHitTest {
     }
   }
 
-  private rebuildRoad(road: readonly Point[]): void {
+  private rebuildRoad(road: readonly Point[], layoutId: string): void {
     this.currentRoad = road;
     this.clearGroup(this.roadRoot);
     this.clearGroup(this.portalRoot);
+    this.clearGroup(this.propRoot);
+    this.clearGroup(this.floraRoot);
     this.lavaMats = [];
     this.buildPath(road);
     this.buildPortals(road);
+    this.buildRocks(layoutId);
+    const flora = buildFlora(
+      layoutId,
+      (wx, wz, pad) => this.occupied(wx, wz, pad),
+      { uTime: this.windTime, uWind: this.windAmp },
+    );
+    this.floraRoot.add(flora);
   }
 
   private buildPath(road: readonly Point[] = this.currentRoad): void {
     const width = logicalRadius(28) * 2;
     const lavaWidth = width * 0.7;
     const stoneMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2620,
-      roughness: 0.92,
-      metalness: 0.12,
+      color: 0xffffff,
+      map: getRoadMap(),
+      roughness: 0.9,
+      metalness: 0.14,
       flatShading: true,
     });
+    useWorldXZMap(stoneMat, 0.28);
     const lavaMat = new THREE.MeshStandardMaterial({
       color: 0x3a2214,
+      map: getRoadMap(),
       emissive: 0x9a3c14,
+      emissiveMap: getLavaMap(),
       emissiveIntensity: 0.46,
       roughness: 0.68,
       metalness: 0.06,
     });
+    useWorldXZMap(lavaMat, 0.34);
     this.lavaMats.push(lavaMat);
 
     for (let i = 0; i < road.length - 1; i += 1) {
@@ -575,7 +641,7 @@ export class WorldRenderer implements BoardHitTest {
     }
   }
 
-  private syncTowers(state: GameState): void {
+  private syncTowers(state: GameState, t: number): void {
     const seen = new Set<string>();
     for (const tower of state.towers) {
       seen.add(tower.id);
@@ -601,6 +667,7 @@ export class WorldRenderer implements BoardHitTest {
       mesh.position.copy(pos);
       const aim = mesh.getObjectByName("aim");
       if (aim) aim.rotation.y = -tower.angle;
+      if (!this.reducedMotion) idleTower(mesh, tower.type, t, tower.flash);
     }
     for (const [id, mesh] of this.towers) {
       if (!seen.has(id)) this.removeTowerMesh(id, mesh);
@@ -694,8 +761,8 @@ export class WorldRenderer implements BoardHitTest {
       const body = mesh.children.find((c) => c instanceof THREE.Mesh) as THREE.Mesh | undefined;
       const mat = body?.material as THREE.MeshStandardMaterial | undefined;
       if (mat && "emissive" in mat) {
-        mat.emissive.setHex(enemy.slowTimer > 0 ? TEAL : 0x000000);
-        mat.emissiveIntensity = enemy.slowTimer > 0 ? 0.55 : 0.15;
+        mat.emissive.setHex(enemy.slowTimer > 0 ? TEAL : 0x2a1810);
+        mat.emissiveIntensity = enemy.slowTimer > 0 ? 0.55 : 0.22;
       }
     }
     for (const [key, mesh] of this.enemies) {
