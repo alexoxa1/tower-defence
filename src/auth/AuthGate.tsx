@@ -21,7 +21,11 @@ function ConfigMessage() {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
+  const skipAuth =
+    import.meta.env.DEV &&
+    new URLSearchParams(window.location.search).has("skipAuth");
 
+  if (skipAuth) return <>{children}</>;
   if (!isSupabaseConfigured) return <ConfigMessage />;
   if (loading) {
     return (

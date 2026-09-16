@@ -26,3 +26,5 @@ Compact layout triggers on `max-width: 720px` **or** `max-height: 540px`, so lan
 ## Tests
 
 `src/game/sim/screenPointer.test.ts` and `screenPick.test.ts` cover slop, aim-place, pinch, and fat-finger pick. Relocate coarse threshold is in `watch.test.ts`. There is no WebGL in those tests. `GameEngine` only wires the hub to `WorldRenderer`.
+
+Local Vite can open the board without login via `?skipAuth`. That query works only when `import.meta.env.DEV` is true. Production builds ignore it.

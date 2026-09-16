@@ -53,9 +53,11 @@ export default function App() {
             isPanning={snapshot.isPanning}
             interactionMode={snapshot.interactionMode}
           />
-          <Header snapshot={snapshot} actions={actions} />
+          <div className="hud-chrome">
+            <Header snapshot={snapshot} actions={actions} />
+            <StatsPanel snapshot={snapshot} />
+          </div>
           <SignOutControl />
-          <StatsPanel snapshot={snapshot} />
           <Toast message={snapshot.toast} />
           <GameOverOverlay snapshot={snapshot} actions={actions} />
         </section>
