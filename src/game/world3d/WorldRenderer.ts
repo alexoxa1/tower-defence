@@ -122,7 +122,7 @@ export class WorldRenderer implements BoardHitTest {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.22;
+    this.renderer.toneMappingExposure = 1.34;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -134,8 +134,8 @@ export class WorldRenderer implements BoardHitTest {
     const d = 52;
     this.cameraOffset.set(d, d * 1.08, d);
 
-    this.scene.add(new THREE.HemisphereLight(0xb8b0a4, 0x1c1a18, 1.15));
-    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.55);
+    this.scene.add(new THREE.HemisphereLight(0xcfc4b4, 0x3a342e, 1.42));
+    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.62);
     this.keyLight.position.set(18, 30, 12);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -147,10 +147,10 @@ export class WorldRenderer implements BoardHitTest {
     this.keyLight.shadow.camera.far = 90;
     this.scene.add(this.keyLight);
     this.scene.add(this.keyLight.target);
-    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.55);
+    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.78);
     fill.position.set(-14, 18, -10);
     this.scene.add(fill);
-    this.scene.add(new THREE.AmbientLight(0x3a3834, 0.82));
+    this.scene.add(new THREE.AmbientLight(0x5a564e, 1.05));
     this.applyCamera();
 
     warmupWorldTextures();
@@ -471,14 +471,16 @@ export class WorldRenderer implements BoardHitTest {
     }
     geo.computeVertexNormals();
     const groundMap = getGroundMap();
-    groundMap.repeat.set(8, 6);
+    groundMap.repeat.set(5, 4);
     const mesh = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+        color: 0xd8d2c8,
         map: groundMap,
-        roughness: 0.92,
-        metalness: 0.05,
+        roughness: 0.9,
+        metalness: 0.04,
+        emissive: 0x2a241c,
+        emissiveIntensity: 0.16,
         flatShading: true,
       }),
     );
@@ -558,6 +560,7 @@ export class WorldRenderer implements BoardHitTest {
       layoutId,
       (wx, wz, pad) => this.occupied(wx, wz, pad),
       { uTime: this.windTime, uWind: this.windAmp },
+      road,
     );
     this.floraRoot.add(flora);
   }

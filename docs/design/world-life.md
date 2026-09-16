@@ -6,21 +6,21 @@ Flora and rocks are decorative. Placement legality stays in the sim (`validatePl
 
 ## Layers
 
-**Ground.** Faceted plane, same displacement as before. Albedo is a 512² seeded CanvasTexture (midnight ash, grit, hairline cracks). Repeat 8×6. Still the only mesh `intersectGround` tests.
+**Ground.** Faceted plane. 512² ash/crack CanvasTexture, midtones around `#3a3c44`–`#6a6c74`, darker fissures. Repeat 5×4. Slight warm `emissive` plus stronger hemisphere/ambient fill so ACES does not crush it to pitch. Still the only mesh `intersectGround` tests.
 
-**Road.** Shared basalt CanvasTexture with world-XZ UVs so long segments do not stretch. Lava strip uses the same basalt plus a 512² emissive seam map. `lavaMats` still pulse `emissiveIntensity` unless reduced motion is on.
+**Road.** Darker basalt + lava seams, so the lane stays darker than the ash.
 
-**Rocks.** Existing `makeJaggedRock` meshes, now with a shared 512² rock map. Rebuilt when the Layout changes so they stay off the live Road.
+**Rocks.** Lighter rock map and HSL so they separate from ground.
 
-**Flora.** Five `InstancedMesh` batches, vertex-colored, no image maps:
+**Flora.** Five `InstancedMesh` batches. Most instances sit in a belt just outside Road clearance (not on the lane, not at In/Out). Instance scale ~1.6–2.7× the first pass. Pine tips mid-tone, broadleaf amber/mint, crystals bloom.
 
 | Batch | Look | Count cap | Shadow |
 | --- | --- | --- | --- |
-| Charred pine | dark cones | 24 | yes |
-| Amber broadleaf | icosa crown | 18 | yes |
-| Mint glow-shrub | emissive clumps | 40 | no |
-| Crystals | mint/amber shards | 22 | no |
-| Grass tufts | three-blade clumps | 140 | no |
+| Charred pine | amber-tipped cones | 36 | yes |
+| Amber broadleaf | icosa crown | 28 | yes |
+| Mint glow-shrub | emissive clumps | 52 | no |
+| Crystals | mint/amber shards | 32 | no |
+| Grass tufts | six-blade clumps | 180 | no |
 
 Wind is an `onBeforeCompile` offset on local `y` (base stays planted). Amplitude is a shared `uWind` uniform.
 
@@ -34,7 +34,7 @@ Wind is an `onBeforeCompile` offset on local `y` (base stays planted). Amplitude
 
 Level does not change the mesh. `syncTowers` never scaled by Level; this view still does not.
 
-**Ambient.** `FogExp2` matching the scene background. 56 drifting ember `Points` (additive, no per-frame alloc). Enemies get a cheap warm rest emissive so they read on the textured ground.
+**Ambient.** Light `FogExp2` (density 0.0036) so the far Road stays readable. 56 drifting ember `Points`. Enemies keep a cheap warm rest emissive.
 
 ## Budget
 
@@ -43,7 +43,7 @@ Textures, all procedural, none larger than 512:
 - ground 512, road 512, lava 512, rock 512
 - brushed 256, runes 256, frost 256
 
-Draw calls (DEV, first frame, `renderer.info.autoReset = false` so bloom passes count too): **97** on the default Serpentine Hold. Rocks frustum-cull; flora is 5 instanced batches.
+Draw calls (DEV, composer passes included): **97 before, 97 after** the readability pass. Flora stayed 5 instanced batches; only instance counts and lighting changed.
 
 No new npm packages. Noise is `three/examples/jsm/math/SimplexNoise.js`.
 

@@ -50,5 +50,5 @@ export function tickEmbers(points: THREE.Points, t: number): void {
 }
 
 export function createBoardFog(): THREE.FogExp2 {
-  return new THREE.FogExp2(0x14151a, 0.011);
+  return new THREE.FogExp2(0x14151a, 0.0036);
 }

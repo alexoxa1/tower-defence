@@ -45,14 +45,14 @@ export function makeHexGun(): THREE.Group {
 
   const body = new THREE.Mesh(
     new THREE.CylinderGeometry(0.72, 0.82, 0.7, 6),
-    metal(0x8a5a28, { metalness: 0.72, roughness: 0.34, emissive: ORANGE, emissiveIntensity: 0.12, emissiveMap: getRuneMap() }),
+    metal(0x8a5a28, { metalness: 0.72, roughness: 0.34, emissive: ORANGE, emissiveIntensity: 0.32, emissiveMap: getRuneMap() }),
   );
   body.position.y = 0.68;
   g.add(body);
 
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(0.62, 0.08, 8, 6),
-    metal(ORANGE, { emissive: ORANGE, emissiveIntensity: 0.85, roughness: 0.36, emissiveMap: getRuneMap() }),
+    metal(ORANGE, { emissive: ORANGE, emissiveIntensity: 1.2, roughness: 0.36, emissiveMap: getRuneMap() }),
   );
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 0.95;
@@ -72,7 +72,7 @@ export function makeHexGun(): THREE.Group {
     turret.add(barrel);
     const glow = new THREE.Mesh(
       new THREE.SphereGeometry(0.08, 8, 8),
-      mat(ORANGE, { emissive: ORANGE, emissiveIntensity: 1.4 }),
+      mat(ORANGE, { emissive: ORANGE, emissiveIntensity: 1.7 }),
     );
     glow.position.set(1.22, 0.08, i * 0.22);
     turret.add(glow);
@@ -93,7 +93,7 @@ export function makeMortar(): THREE.Group {
 
   const collar = new THREE.Mesh(
     new THREE.TorusGeometry(1.05, 0.08, 8, 24),
-    metal(TEAL, { emissive: TEAL, emissiveIntensity: 0.45, emissiveMap: getRuneMap() }),
+    metal(TEAL, { emissive: TEAL, emissiveIntensity: 0.75, emissiveMap: getRuneMap() }),
   );
   collar.rotation.x = Math.PI / 2;
   collar.position.y = 0.24;
@@ -101,7 +101,7 @@ export function makeMortar(): THREE.Group {
 
   const drum = new THREE.Mesh(
     new THREE.CylinderGeometry(0.92, 1.08, 0.42, 20),
-    metal(0x1a5c52, { metalness: 0.52, emissive: TEAL, emissiveIntensity: 0.08, emissiveMap: getRuneMap() }),
+    metal(0x1a5c52, { metalness: 0.52, emissive: TEAL, emissiveIntensity: 0.22, emissiveMap: getRuneMap() }),
   );
   drum.position.y = 0.42;
   g.add(drum);
@@ -153,7 +153,7 @@ export function makeRail(): THREE.Group {
       metalness: 0.7,
       roughness: 0.18,
       emissive: TEAL,
-      emissiveIntensity: 0.28,
+      emissiveIntensity: 0.5,
       map: getFrostMap(),
       emissiveMap: getRuneMap(),
     }),
@@ -164,7 +164,7 @@ export function makeRail(): THREE.Group {
   for (let i = 0; i < 5; i += 1) {
     const fin = new THREE.Mesh(
       new THREE.BoxGeometry(0.92, 0.08, 0.04),
-      metal(TEAL, { emissive: TEAL, emissiveIntensity: 0.85, map: getFrostMap() }),
+      metal(TEAL, { emissive: TEAL, emissiveIntensity: 1.15, map: getFrostMap() }),
     );
     fin.position.y = 0.85 + i * 0.62;
     fin.rotation.y = (i * Math.PI) / 5;
@@ -201,21 +201,21 @@ export function makeBeacon(): THREE.Group {
   const g = new THREE.Group();
   const pad = new THREE.Mesh(
     new THREE.CylinderGeometry(0.95, 1.12, 0.22, 6),
-    metal(0x2a2214, { metalness: 0.58, emissive: AMBER, emissiveIntensity: 0.1, emissiveMap: getRuneMap() }),
+    metal(0x2a2214, { metalness: 0.58, emissive: AMBER, emissiveIntensity: 0.28, emissiveMap: getRuneMap() }),
   );
   pad.position.y = 0.12;
   g.add(pad);
 
   const shaft = new THREE.Mesh(
     new THREE.CylinderGeometry(0.22, 0.38, 2.2, 6),
-    metal(0x3a2e1c, { metalness: 0.6, roughness: 0.36, emissive: AMBER, emissiveIntensity: 0.16, emissiveMap: getRuneMap() }),
+    metal(0x3a2e1c, { metalness: 0.6, roughness: 0.36, emissive: AMBER, emissiveIntensity: 0.32, emissiveMap: getRuneMap() }),
   );
   shaft.position.y = 1.2;
   g.add(shaft);
 
   const flame = new THREE.Mesh(
     new THREE.SphereGeometry(0.42, 12, 10),
-    mat(AMBER, { emissive: AMBER, emissiveIntensity: 1.35, roughness: 0.28 }),
+    mat(AMBER, { emissive: AMBER, emissiveIntensity: 1.55, roughness: 0.28 }),
   );
   flame.name = "idleGlow";
   flame.position.y = 2.45;
@@ -223,7 +223,7 @@ export function makeBeacon(): THREE.Group {
 
   const halo = new THREE.Mesh(
     new THREE.TorusGeometry(0.62, 0.05, 8, 16),
-    mat(AMBER, { emissive: AMBER, emissiveIntensity: 0.9 }),
+    mat(AMBER, { emissive: AMBER, emissiveIntensity: 1.2 }),
   );
   halo.name = "pulseRing";
   halo.rotation.x = Math.PI / 2;
@@ -251,7 +251,7 @@ export function makeLantern(): THREE.Group {
     new THREE.CylinderGeometry(0.48, 0.55, 1.35, 8, 1, true),
     metal(MINT, {
       emissive: MINT,
-      emissiveIntensity: 0.35,
+      emissiveIntensity: 0.55,
       transparent: true,
       opacity: 0.7,
       map: getFrostMap(),
@@ -262,7 +262,7 @@ export function makeLantern(): THREE.Group {
 
   const core = new THREE.Mesh(
     new THREE.OctahedronGeometry(0.38),
-    mat(0xd8fff6, { emissive: MINT, emissiveIntensity: 1.2, metalness: 0.7, map: getFrostMap() }),
+    mat(0xd8fff6, { emissive: MINT, emissiveIntensity: 1.45, metalness: 0.7, map: getFrostMap() }),
   );
   core.name = "swirl";
   core.position.y = 1.1;
@@ -324,7 +324,7 @@ export function idleTower(root: THREE.Group, type: TowerType, t: number, flash: 
     const glow = root.getObjectByName("idleGlow") as THREE.Mesh | undefined;
     const glowMat = glow?.material;
     if (glowMat && "emissiveIntensity" in glowMat) {
-      glowMat.emissiveIntensity = 1.15 + Math.sin(t * 1.6) * 0.25;
+      glowMat.emissiveIntensity = 1.4 + Math.sin(t * 1.6) * 0.22;
     }
     return;
   }
@@ -667,7 +667,7 @@ export function makeJaggedRock(rand: () => number): THREE.Mesh {
   const mesh = new THREE.Mesh(
     geo,
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.04, 0.08, 0.18 + rand() * 0.1),
+      color: new THREE.Color().setHSL(0.05, 0.1, 0.34 + rand() * 0.12),
       map: getRockMap(),
       roughness: 0.94,
       metalness: 0.06,
