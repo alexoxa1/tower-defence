@@ -8,6 +8,7 @@ import { getLayout } from "../config/layouts";
 import { getEffectiveStats } from "../config/towerStats";
 import { dragOffset } from "../sim/drag";
 import type { BoardHit, BoardHitTest } from "../sim/boardHit";
+import { nearestIdByScreen, TOWER_PICK_SLOP_PX, UPGRADE_PICK_SLOP_PX } from "../sim/screenPick";
 import type { GameState, Point } from "../types";
 import { logicalRadius, logicalToWorld, WORLD_SCALE, worldToLogical } from "./coords";
 import { disposeObject } from "./dispose";
@@ -203,7 +204,11 @@ export class WorldRenderer implements BoardHitTest {
   }
 
   zoom(deltaY: number): void {
-    const factor = deltaY > 0 ? 1.08 : 0.92;
+    this.zoomByFactor(deltaY > 0 ? 1.08 : 0.92);
+  }
+
+  zoomByFactor(factor: number): void {
+    if (!Number.isFinite(factor) || factor <= 0) return;
     this.frustum = Math.min(22, Math.max(6.4, this.frustum * factor));
     this.resize();
   }
@@ -277,7 +282,16 @@ export class WorldRenderer implements BoardHitTest {
     if (objects.length === 0) return null;
     const hits = this.raycaster.intersectObjects(objects, true);
     const id = hits[0]?.object.userData.towerId;
-    return typeof id === "string" ? id : null;
+    if (typeof id === "string") return id;
+    return this.pickNearestScreen(
+      [...this.towers.entries()].map(([towerId, mesh]) => ({
+        id: towerId,
+        object: mesh,
+      })),
+      clientX,
+      clientY,
+      TOWER_PICK_SLOP_PX,
+    );
   }
 
   pickUpgrade(clientX: number, clientY: number): string | null {
@@ -286,7 +300,36 @@ export class WorldRenderer implements BoardHitTest {
     if (chevrons.length === 0) return null;
     const hits = this.raycaster.intersectObjects(chevrons, false);
     const id = hits[0]?.object.userData.towerId;
-    return typeof id === "string" ? id : null;
+    if (typeof id === "string") return id;
+    return this.pickNearestScreen(
+      [...this.selectionFx.entries()].map(([towerId, fx]) => ({
+        id: towerId,
+        object: fx.chevron,
+      })),
+      clientX,
+      clientY,
+      UPGRADE_PICK_SLOP_PX,
+    );
+  }
+
+  private pickNearestScreen(
+    items: { id: string; object: THREE.Object3D }[],
+    clientX: number,
+    clientY: number,
+    maxPx: number,
+  ): string | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const world = new THREE.Vector3();
+    const projected = items.map((item) => {
+      item.object.getWorldPosition(world);
+      world.project(this.camera);
+      return {
+        id: item.id,
+        x: (world.x * 0.5 + 0.5) * rect.width + rect.left,
+        y: (-world.y * 0.5 + 0.5) * rect.height + rect.top,
+      };
+    });
+    return nearestIdByScreen(projected, clientX, clientY, maxPx);
   }
 
   sync(state: GameState): void {

@@ -19,4 +19,5 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --hud-radius: 2px;
   --sidebar-width: 320px;
+  --touch-min: 44px;
 }

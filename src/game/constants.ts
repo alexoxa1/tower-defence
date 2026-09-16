@@ -13,6 +13,9 @@ export type GameSpeed = (typeof SPEED_OPTIONS)[number];
 /** Logical travel before a press on a tower becomes a relocate. */
 export const RELOCATE_THRESHOLD = 16;
 
+/** Relocate travel on touch/pen. Finger jitter is larger than a mouse nudge. */
+export const RELOCATE_THRESHOLD_COARSE = 48;
+
 /** @deprecated Use getLayout(id).road or GameState.road. Kept as the Serpentine Road. */
 export const PATH = getLayout(DEFAULT_LAYOUT_ID).road;
 

@@ -8,12 +8,14 @@ import { advanceWatch } from "./sim/advanceWatch";
 import type { BoardHitTest } from "./sim/boardHit";
 import type { WatchPorts } from "./sim/ports";
 import {
+  cancelDrag,
   clearBoardSelection,
   pointerDown,
   pointerMove,
   pointerUp,
 } from "./sim/pointer";
 import { refreshPreview } from "./sim/preview";
+import { ScreenPointerHub } from "./sim/screenPointer";
 import { startWave } from "./systems/waves";
 import { sellTower, sellTowers, upgradeTower, upgradeTowers } from "./systems/upgrade";
 import { WorldRenderer } from "./world3d/WorldRenderer";
@@ -34,12 +36,7 @@ export class GameEngine {
   private reducedMotion = false;
   private ports: WatchPorts;
   private hudKey = "";
-  private panSession: {
-    x: number;
-    y: number;
-    button: number;
-    moved: boolean;
-  } | null = null;
+  private pointerHub: ScreenPointerHub;
 
   readonly actions: GameActions;
 
@@ -58,6 +55,22 @@ export class GameEngine {
       play: (name) => this.audio.play(name),
       notify: (message) => this.showToast(message),
     };
+    this.pointerHub = new ScreenPointerHub({
+      interactionMode: () => this.state.interactionMode,
+      hit: (x, y) => this.board.hit(x, y),
+      toLogical: (x, y) => this.board.toLogical(x, y),
+      pan: (dx, dy) => this.world.pan(dx, dy),
+      zoomByFactor: (factor) => this.world.zoomByFactor(factor),
+      upgradeTower: (id) => this.doUpgradeTower(id),
+      pointerDown: (point, options) =>
+        pointerDown(this.state, point, options, this.ports),
+      pointerMove: (point) => pointerMove(this.state, point),
+      pointerUp: (point) => pointerUp(this.state, point, this.ports),
+      cancelDrag: () => {
+        cancelDrag(this.state);
+        refreshPreview(this.state);
+      },
+    });
 
     this.actions = {
       selectBuildType: (type) => this.selectBuildType(type),
@@ -81,11 +94,14 @@ export class GameEngine {
       selectLayout: (id) => this.selectLayout(id),
       handleKeyDown: (key, code, ctrlKey) =>
         this.handleKeyDown(key, code, ctrlKey),
+      zoomIn: () => this.world.zoom(-120),
+      zoomOut: () => this.world.zoom(120),
+      resetView: () => this.world.resetView(),
     };
 
     this.setupCanvas();
     this.emitSnapshot();
-    this.showToast("Scout: drag the board. Pick a tower in the Armory to build.");
+    this.showToast("Scout: drag to pan. Pinch or use + / − to zoom.");
   }
 
   start(): void {
@@ -114,7 +130,7 @@ export class GameEngine {
       buildUiSnapshot(this.state, {
         toast: this.toastMessage,
         muted: this.audio.muted,
-        isPanning: this.panSession?.moved === true,
+        isPanning: this.pointerHub.isPanning(),
         reducedMotion: this.reducedMotion,
       }),
     );
@@ -145,7 +161,7 @@ export class GameEngine {
       this.audio.muted,
       this.reducedMotion,
       s.layoutId,
-      this.panSession?.moved === true,
+      this.pointerHub.isPanning(),
     ].join("|");
   }
 
@@ -253,103 +269,10 @@ export class GameEngine {
     clientY: number,
     options?: PointerOptions,
   ): void {
-    if (phase === "down" && options && this.shouldPan(options)) {
-      this.panSession = {
-        x: clientX,
-        y: clientY,
-        button: options.button,
-        moved: false,
-      };
-      this.emitSnapshot();
-      return;
-    }
-
-    if (phase === "down" && options && options.button === 0) {
-      const hit = this.board.hit(clientX, clientY);
-      if (hit.kind === "upgrade") {
-        this.doUpgradeTower(hit.towerId);
-        return;
-      }
-      if (hit.kind === "tower") {
-        pointerDown(this.state, hit.point, options, this.ports);
-        this.emitSnapshot();
-        return;
-      }
-      this.panSession = {
-        x: clientX,
-        y: clientY,
-        button: 0,
-        moved: false,
-      };
-      return;
-    }
-
-    if (this.panSession && phase === "move") {
-      const dx = clientX - this.panSession.x;
-      const dy = clientY - this.panSession.y;
-      const wasMoved = this.panSession.moved;
-      if (Math.hypot(dx, dy) > 2) this.panSession.moved = true;
-      this.world.pan(dx, dy);
-      this.panSession.x = clientX;
-      this.panSession.y = clientY;
-      if (this.panSession.moved && !wasMoved) this.emitSnapshot();
-      return;
-    }
-
-    if (this.panSession && phase === "up") {
-      const session = this.panSession;
-      this.panSession = null;
-      if (!session.moved) {
-        const hit = this.board.hit(clientX, clientY);
-        if (hit.kind === "tower") {
-          pointerDown(
-            this.state,
-            hit.point,
-            { button: session.button, ctrlKey: false, metaKey: false },
-            this.ports,
-          );
-        } else {
-          const point =
-            hit.kind === "ground"
-              ? hit.point
-              : this.board.toLogical(clientX, clientY);
-          if (point) {
-            pointerDown(
-              this.state,
-              point,
-              {
-                button: session.button,
-                ctrlKey: false,
-                metaKey: false,
-              },
-              this.ports,
-            );
-          }
-        }
-      }
-      this.emitSnapshot();
-      return;
-    }
-
-    const point = this.board.toLogical(clientX, clientY);
-    if (!point) {
-      if (phase === "move") pointerMove(this.state, { x: -999, y: -999 });
-      return;
-    }
-    if (phase === "move") pointerMove(this.state, point);
-    else if (phase === "up") {
-      pointerUp(this.state, point, this.ports);
-      this.emitSnapshot();
-    }
-  }
-
-  private shouldPan(options: PointerOptions): boolean {
-    return (
-      options.button === 1 ||
-      options.button === 2 ||
-      (options.button === 0 &&
-        (options.altKey === true || options.shiftKey === true))
-    );
+    const wasPanning = this.pointerHub.isPanning();
+    this.pointerHub.handle(phase, clientX, clientY, options);
+    const nowPanning = this.pointerHub.isPanning();
+    if (phase !== "move" || nowPanning !== wasPanning) this.emitSnapshot();
   }
 
   private handleKeyDown(key: string, code: string, ctrlKey: boolean): void {

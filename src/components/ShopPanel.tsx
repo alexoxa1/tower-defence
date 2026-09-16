@@ -20,7 +20,7 @@ export function ShopPanel({
         type="button"
         className={`tower-card${scouting ? " selected" : ""}`}
         aria-pressed={scouting}
-        aria-label="Scout. Drag the board. Key V"
+        aria-label="Scout. Drag the board to pan."
         onClick={() => actions?.selectBuildType(null)}
       >
         <span className="swatch scout-swatch" aria-hidden="true">
@@ -28,10 +28,11 @@ export function ShopPanel({
         </span>
         <span className="tower-copy">
           <span className="tower-name">Scout</span>
-          <span className="tower-blurb">Drag to pan • No build</span>
+          <span className="tower-blurb hint-fine">Drag to pan • No build</span>
+          <span className="tower-blurb hint-coarse">Drag / pinch • No build</span>
         </span>
       </button>
-      {ARMORY_ORDER.map((type, index) => {
+      {ARMORY_ORDER.map((type) => {
         const item = ARMORY[type];
         const selected =
           snapshot.interactionMode === "build" &&
@@ -44,7 +45,7 @@ export function ShopPanel({
             className={`tower-card${selected ? " selected" : ""}`}
             disabled={disabled}
             aria-pressed={selected}
-        aria-label={`${item.name}, ${formatNumber(item.cost)} gold. ${item.blurb}. Key ${index + 1}`}
+            aria-label={`${item.name}, ${formatNumber(item.cost)} gold. ${item.blurb}.`}
             onClick={() => actions?.selectBuildType(type)}
           >
             <span

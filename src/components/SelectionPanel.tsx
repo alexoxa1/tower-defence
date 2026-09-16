@@ -62,8 +62,12 @@ export function SelectionPanel({
             <span>Scout</span>
             <span className="level-tag">Move</span>
           </div>
-          <p className="selected-hint">
+          <p className="selected-hint hint-fine">
             Drag the board to pan. Pick a tower in the Armory to build.
+          </p>
+          <p className="selected-hint hint-coarse">
+            Drag to pan. Pinch or tap + / − to zoom. Pick a tower in the Armory to
+            build.
           </p>
         </section>
       );
@@ -77,7 +81,12 @@ export function SelectionPanel({
           <span>{buildMeta.name}</span>
           <span className="level-tag">Place</span>
         </div>
-        <p className="selected-hint">Click empty ground to place. Drag empty ground to pan.</p>
+        <p className="selected-hint hint-fine">
+          Click empty ground to place. Drag empty ground to pan.
+        </p>
+        <p className="selected-hint hint-coarse">
+          Drag to aim the ghost. Lift to place. Two fingers pan and pinch-zoom.
+        </p>
       </section>
     );
   }
@@ -95,8 +104,12 @@ export function SelectionPanel({
           <span>{meta.name}</span>
           <span className="level-tag">Level {tower.level}</span>
         </div>
-        <p className="selected-hint">
+        <p className="selected-hint hint-fine">
           Drag to relocate. Click empty ground to pan.
+        </p>
+        <p className="selected-hint hint-coarse">
+          Drag to relocate. Drag empty ground to pan. Upgrade from the rack, not
+          the tiny chevron.
         </p>
         <ul className="selected-stats">
           <li>
