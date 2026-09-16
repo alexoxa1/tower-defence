@@ -4,46 +4,54 @@ The 3D view paints the Watch. It does not own gold, lives, Waves, targeting, or 
 
 Flora and rocks are decorative. Placement legality stays in the sim (`validatePlacement`). Scatter uses a Layout-seeded RNG and rejects points on the Road clearance band and around In / Out so plants never sit on the lane or the portals.
 
+## Palette
+
+Midnight command board. Lights stay modest so albedo and emissive carry contrast.
+
+| Token | Value |
+| --- | --- |
+| Hemisphere | sky `#b4bcc8`, ground `#24262c`, intensity **0.7** |
+| Key | `#ffe4c4` **1.1** |
+| Fill | `#9ec4d8` **0.4** |
+| Ambient | `#3a3e46` **0.45** |
+| Exposure | **1.16** (ACES) |
+| Bloom | strength 0.28, radius 0.2, threshold **0.72** (strength 0 when reduced motion) |
+| Fog | `FogExp2` `#14151a` density **0.0036** |
+| Ground map | cool ash `(76,78,90)` → `(160,162,176)`, blue-dark cracks. Emissive `#222a38` **0.14** |
+| Pines | vertex `(0.10,0.18,0.15)` → tips `(0.22,0.38,0.30)`, mint emissive **0.08**, instance hue teal↔olive |
+| Broadleaf | rust core `(0.45,0.20,0.08)`, amber crown `(0.75,0.42,0.16)` |
+| Grass | olive-mint `(0.22,0.34,0.26)` → `(0.38,0.52,0.42)` |
+| Shrubs | body `(0.35,0.60,0.48)`, emissive **0.18** |
+| Crystals | vertex mid-mint `(0.45,0.85,0.75)` + amber facet, emissive **0.45**, 18 in 3 groves |
+| Rocks | basalt `(48,52,62)` map, ~40 jagged + 30 instanced slabs |
+
+No saturated lime. No white flora tints.
+
 ## Layers
 
-**Ground.** Faceted plane. 512² ash/crack CanvasTexture, midtones around `#3a3c44`–`#6a6c74`, darker fissures. Repeat 5×4. Slight warm `emissive` plus stronger hemisphere/ambient fill so ACES does not crush it to pitch. Still the only mesh `intersectGround` tests.
+**Ground.** Faceted plane. 512² cool ash/crack CanvasTexture. Repeat 5×4. Cool `emissive` 0.14 so mid-tones survive ACES. Still the only mesh `intersectGround` tests. Road stays darker than ground. Lava pulse ~0.82 so seams still bloom at threshold 0.72.
 
-**Road.** Darker basalt + lava seams, so the lane stays darker than the ash.
+**Rocks.** ~40 unique `makeJaggedRock` (scale 0.5–1.3, height 0.4–1.4, Road corridor, pad 0.6) plus 30 instanced basalt slabs (pad 0.55). Off the berm.
 
-**Rocks.** Lighter rock map and HSL so they separate from ground.
-
-**Flora.** Five `InstancedMesh` batches. Most instances sit in a belt just outside Road clearance (not on the lane, not at In/Out). Instance scale ~1.6–2.7× the first pass. Pine tips mid-tone, broadleaf amber/mint, crystals bloom.
+**Flora.** Instanced batches, corridor scatter just outside Road clearance. Tallest pine world height ≈ 1.26 × 1.12 × 1.12 ≈ **1.58** vs Hex Gun ≈ **1.13** (ratio **~1.40**, ≤ 1.5).
 
 | Batch | Look | Count cap | Shadow |
 | --- | --- | --- | --- |
-| Charred pine | amber-tipped cones | 36 | yes |
-| Amber broadleaf | icosa crown | 28 | yes |
-| Mint glow-shrub | emissive clumps | 52 | no |
-| Crystals | mint/amber shards | 32 | no |
-| Grass tufts | six-blade clumps | 180 | no |
+| Charred pine | tall cones | 24 | yes |
+| Squat pine | wide cones | 16 | yes |
+| Amber broadleaf | rust core + amber crown | 22 | yes |
+| Mint glow-shrub | mid-mint clumps | 40 | no |
+| Crystals | 3 groves along the Road | 18 | no |
+| Grass tufts | six-blade olive | 150 | no |
+| Rock slabs | flattened dodeca | 30 | yes |
 
-Wind is an `onBeforeCompile` offset on local `y` (base stays planted). Amplitude is a shared `uWind` uniform.
+Wind is an `onBeforeCompile` offset on local `y` (base stays planted). Amplitude is a shared `uWind` uniform. Crystals and slabs still instance; crystals keep a light sway.
 
-**Towers.** Brushed-metal / frost / rune CanvasTextures (256²) as `map` / `emissiveMap`. Idle motion, off when reduced motion is on:
-
-- Hex Gun: barrel spin
-- Mortar Post: tube bob (deeper on fire flash)
-- Rail Sniper: cap charge glow
-- Ward Beacon: halo pulse + flame brightness
-- Frost Lantern: core swirl
-
-Level does not change the mesh. `syncTowers` never scaled by Level; this view still does not.
-
-**Ambient.** Light `FogExp2` (density 0.0036) so the far Road stays readable. 56 drifting ember `Points`. Enemies keep a cheap warm rest emissive.
+**Towers.** Brushed-metal / frost / rune CanvasTextures. Idle motion off when reduced motion is on.
 
 ## Budget
 
-Textures, all procedural, none larger than 512:
-
-- ground 512, road 512, lava 512, rock 512
-- brushed 256, runes 256, frost 256
-
-Draw calls (DEV, composer passes included): **97 before, 97 after** the readability pass. Flora stayed 5 instanced batches; only instance counts and lighting changed.
+Textures ≤ 512, all procedural. Flora/prop instanced batches: **7**. Draw calls (DEV, composer included): **97** on the readability pass, **85** on this midnight pass (≤ 110). Mean board sRGB luminance **0.227** at default zoom (HUD cropped).
 
 No new npm packages. Noise is `three/examples/jsm/math/SimplexNoise.js`.
 
@@ -51,20 +59,19 @@ No new npm packages. Noise is `three/examples/jsm/math/SimplexNoise.js`.
 
 `setReducedMotion(true)`:
 
-- bloom strength 0 (existing)
-- `uWind = 0` (no sway)
+- bloom strength 0 (threshold stays 0.72)
+- `uWind = 0`
 - embers hidden, not ticked
 - lava pulse, portal flame scale, tower idle skipped
 - fog stays (static)
 
 ## Dispose
 
-Shared CanvasTextures are tagged `userData.shared` so per-mesh `disposeObject` does not kill the atlas. `WorldRenderer.dispose` calls `disposeWorldTextures`. Layout rebuild clears `roadRoot`, `portalRoot`, `propRoot`, and `floraRoot` through `disposeObject`. Instanced meshes call `.dispose()`.
+Shared CanvasTextures are tagged `userData.shared`. `WorldRenderer.dispose` calls `disposeWorldTextures`. Layout rebuild clears `roadRoot`, `portalRoot`, `propRoot`, and `floraRoot`. Instanced meshes call `.dispose()`.
 
 ## Left out
 
 - Visual Level growth
-- Instancing the jagged rocks (geometries stay unique)
+- Instancing every jagged rock
 - Wind-matching `customDepthMaterial`
-- GPU grass blades / L-systems
 - Any `GameState` field

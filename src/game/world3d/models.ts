@@ -653,24 +653,24 @@ export function makePortal(label: "IN" | "OUT"): THREE.Group {
 }
 
 export function makeJaggedRock(rand: () => number): THREE.Mesh {
-  const geo = new THREE.IcosahedronGeometry(0.55 + rand() * 1.15, 0);
+  const geo = new THREE.IcosahedronGeometry(0.5, 0);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i += 1) {
     pos.setXYZ(
       i,
-      pos.getX(i) * (0.55 + rand() * 1.15),
-      pos.getY(i) * (0.7 + rand() * 1.8),
-      pos.getZ(i) * (0.55 + rand() * 1.15),
+      pos.getX(i) * (0.72 + rand() * 0.4),
+      pos.getY(i) * (0.55 + rand() * 0.28),
+      pos.getZ(i) * (0.72 + rand() * 0.4),
     );
   }
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(
     geo,
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(0.05, 0.1, 0.34 + rand() * 0.12),
+      color: new THREE.Color().setHSL(0.6, 0.1, 0.4 + rand() * 0.08),
       map: getRockMap(),
       roughness: 0.94,
-      metalness: 0.06,
+      metalness: 0.08,
       flatShading: true,
     }),
   );

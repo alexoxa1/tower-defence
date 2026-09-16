@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Point } from "../types";
 import { logicalToWorld } from "./coords";
-import { layoutSeed, seeded } from "./textures";
+import { getRockMap, layoutSeed, seeded } from "./textures";
 
 export interface WindUniforms {
   uTime: { value: number };
@@ -42,17 +42,17 @@ function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 function pineGeom(): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.07, 0.13, 1.05, 5);
-  trunk.translate(0, 0.52, 0);
-  paint(trunk, 0.28, 0.2, 0.14);
+  const trunk = new THREE.CylinderGeometry(0.06, 0.1, 0.55, 5);
+  trunk.translate(0, 0.28, 0);
+  paint(trunk, 0.1, 0.08, 0.07);
   const parts: THREE.BufferGeometry[] = [trunk];
   const layers: [number, number, number, number, number][] = [
-    [0.72, 0.72, 0.28, 0.38, 0.2],
-    [0.52, 1.22, 0.4, 0.52, 0.26],
-    [0.3, 1.68, 0.62, 0.58, 0.3],
+    [0.42, 0.48, 0.1, 0.18, 0.15],
+    [0.3, 0.78, 0.14, 0.26, 0.2],
+    [0.18, 1.02, 0.22, 0.38, 0.3],
   ];
   for (const [radius, y, r, g, b] of layers) {
-    const cone = new THREE.ConeGeometry(radius, 0.78, 6);
+    const cone = new THREE.ConeGeometry(radius, 0.48, 6);
     cone.translate(0, y, 0);
     paint(cone, r, g, b);
     parts.push(cone);
@@ -60,57 +60,81 @@ function pineGeom(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+function squatPineGeom(): THREE.BufferGeometry {
+  const trunk = new THREE.CylinderGeometry(0.08, 0.14, 0.32, 5);
+  trunk.translate(0, 0.16, 0);
+  paint(trunk, 0.1, 0.08, 0.07);
+  const low = new THREE.ConeGeometry(0.62, 0.42, 6);
+  low.translate(0, 0.38, 0);
+  paint(low, 0.1, 0.18, 0.15);
+  const high = new THREE.ConeGeometry(0.38, 0.34, 6);
+  high.translate(0, 0.62, 0);
+  paint(high, 0.2, 0.34, 0.28);
+  return merge([trunk, low, high]);
+}
+
 function broadleafGeom(): THREE.BufferGeometry {
-  const trunk = new THREE.CylinderGeometry(0.09, 0.14, 0.85, 6);
-  trunk.translate(0, 0.42, 0);
-  paint(trunk, 0.32, 0.2, 0.1);
-  const crown = new THREE.IcosahedronGeometry(0.72, 0);
-  crown.translate(0, 1.22, 0);
-  paint(crown, 0.92, 0.68, 0.32);
-  const crown2 = new THREE.IcosahedronGeometry(0.5, 0);
-  crown2.translate(0.22, 1.42, -0.1);
-  paint(crown2, 0.55, 0.82, 0.62);
-  return merge([trunk, crown, crown2]);
+  const trunk = new THREE.CylinderGeometry(0.07, 0.11, 0.5, 6);
+  trunk.translate(0, 0.25, 0);
+  paint(trunk, 0.18, 0.1, 0.06);
+  const core = new THREE.IcosahedronGeometry(0.34, 0);
+  core.translate(0, 0.62, 0);
+  paint(core, 0.45, 0.2, 0.08);
+  const crown = new THREE.IcosahedronGeometry(0.42, 0);
+  crown.translate(0.08, 0.78, -0.04);
+  paint(crown, 0.75, 0.42, 0.16);
+  return merge([trunk, core, crown]);
 }
 
 function shrubGeom(): THREE.BufferGeometry {
-  const a = new THREE.IcosahedronGeometry(0.38, 0);
-  a.translate(0, 0.34, 0);
-  paint(a, 0.48, 0.86, 0.64);
-  const b = new THREE.IcosahedronGeometry(0.28, 0);
-  b.translate(0.2, 0.3, 0.1);
-  paint(b, 0.4, 0.78, 0.58);
-  const c = new THREE.IcosahedronGeometry(0.22, 0);
-  c.translate(-0.16, 0.28, -0.12);
-  paint(c, 0.82, 0.98, 0.9);
+  const a = new THREE.IcosahedronGeometry(0.3, 0);
+  a.translate(0, 0.28, 0);
+  paint(a, 0.35, 0.6, 0.48);
+  const b = new THREE.IcosahedronGeometry(0.22, 0);
+  b.translate(0.16, 0.24, 0.08);
+  paint(b, 0.3, 0.52, 0.42);
+  const c = new THREE.IcosahedronGeometry(0.16, 0);
+  c.translate(-0.12, 0.22, -0.08);
+  paint(c, 0.4, 0.62, 0.5);
   return merge([a, b, c]);
 }
 
 function crystalGeom(): THREE.BufferGeometry {
-  const core = new THREE.OctahedronGeometry(0.32, 0);
-  core.translate(0, 0.38, 0);
-  paint(core, 0.82, 1, 0.94);
-  const spike = new THREE.ConeGeometry(0.12, 0.58, 5);
-  spike.translate(0, 0.78, 0);
-  paint(spike, 0.55, 0.92, 0.78);
-  const side = new THREE.OctahedronGeometry(0.18, 0);
-  side.translate(0.22, 0.22, 0.05);
-  paint(side, 0.95, 0.7, 0.32);
+  const core = new THREE.OctahedronGeometry(0.22, 0);
+  core.translate(0, 0.28, 0);
+  paint(core, 0.45, 0.85, 0.75);
+  const spike = new THREE.ConeGeometry(0.08, 0.4, 5);
+  spike.translate(0, 0.55, 0);
+  paint(spike, 0.4, 0.78, 0.7);
+  const side = new THREE.OctahedronGeometry(0.12, 0);
+  side.translate(0.16, 0.16, 0.04);
+  paint(side, 0.75, 0.42, 0.16);
   return merge([core, spike, side]);
 }
 
 function grassGeom(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 6; i += 1) {
-    const blade = new THREE.BoxGeometry(0.1, 0.72, 0.04);
-    blade.translate(0, 0.36, 0);
+    const blade = new THREE.BoxGeometry(0.08, 0.52, 0.032);
+    blade.translate(0, 0.26, 0);
     blade.rotateY(i * 1.05);
-    blade.rotateZ((i % 3 - 1) * 0.22);
+    blade.rotateZ((i % 3 - 1) * 0.2);
     const tip = i % 2 === 0;
-    paint(blade, tip ? 0.42 : 0.28, tip ? 0.62 : 0.48, tip ? 0.28 : 0.2);
+    paint(blade, tip ? 0.38 : 0.22, tip ? 0.52 : 0.34, tip ? 0.42 : 0.26);
     parts.push(blade);
   }
   return merge(parts);
+}
+
+function slabRockGeom(): THREE.BufferGeometry {
+  const geo = new THREE.DodecahedronGeometry(0.48, 0);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i += 1) {
+    pos.setY(i, pos.getY(i) * 0.42);
+    pos.setX(i, pos.getX(i) * 1.15);
+  }
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function windMaterial(
@@ -219,6 +243,65 @@ function scatter(
   into.computeBoundingSphere();
 }
 
+function scatterGroves(
+  count: number,
+  groveCount: number,
+  groveRadius: number,
+  pad: number,
+  inner: number,
+  outer: number,
+  road: readonly Point[],
+  rand: () => number,
+  occupied: OccupiedFn,
+  into: THREE.InstancedMesh,
+  tint: (color: THREE.Color, rand: () => number) => void,
+  scaleRange: [number, number],
+): void {
+  const groves: { wx: number; wz: number }[] = [];
+  let guard = 0;
+  while (groves.length < groveCount && guard < groveCount * 20) {
+    guard += 1;
+    const sample = sampleCorridor(road, rand, inner, outer);
+    if (occupied(sample.wx, sample.wz, pad)) continue;
+    groves.push(sample);
+  }
+  if (groves.length === 0) {
+    groves.push(sampleCorridor(road, rand, inner, outer));
+  }
+  let n = 0;
+  let attempts = 0;
+  while (n < count && attempts < count * 24) {
+    attempts += 1;
+    const grove = groves[Math.floor(rand() * groves.length)];
+    const wx = grove.wx + (rand() - 0.5) * groveRadius * 2;
+    const wz = grove.wz + (rand() - 0.5) * groveRadius * 2;
+    if (occupied(wx, wz, pad)) continue;
+    const s = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+    _pos.set(wx, 0, wz);
+    _euler.set(0, rand() * Math.PI * 2, (rand() - 0.5) * 0.12);
+    _quat.setFromEuler(_euler);
+    _scale.set(s, s * (0.85 + rand() * 0.25), s);
+    _matrix.compose(_pos, _quat, _scale);
+    into.setMatrixAt(n, _matrix);
+    tint(_color, rand);
+    into.setColorAt(n, _color);
+    n += 1;
+  }
+  into.count = n;
+  into.instanceMatrix.needsUpdate = true;
+  if (into.instanceColor) into.instanceColor.needsUpdate = true;
+  into.computeBoundingSphere();
+}
+
+function pineTint(color: THREE.Color, rand: () => number): void {
+  const teal = rand();
+  color.setRGB(
+    0.56 + (1 - teal) * 0.16,
+    0.66 + teal * 0.1,
+    0.46 + teal * 0.24,
+  );
+}
+
 function makeLayer(
   geom: THREE.BufferGeometry,
   mat: THREE.MeshStandardMaterial,
@@ -243,62 +326,89 @@ export function buildFlora(
   const root = new THREE.Group();
   root.name = "flora";
 
-  const pine = makeLayer(pineGeom(), windMaterial({ roughness: 0.82 }, wind), 36, true);
-  scatter(36, 0.35, 0.82, 56, 150, road, rand, occupied, pine, (c, r) => {
-    c.setRGB(0.9 + r() * 0.1, 0.85 + r() * 0.12, 0.7 + r() * 0.12);
-  }, [1.55, 2.45]);
+  const pineMat = windMaterial(
+    { roughness: 0.88, emissive: 0x7dcea0, emissiveIntensity: 0.08 },
+    wind,
+  );
+  const pine = makeLayer(pineGeom(), pineMat, 24, true);
+  scatter(24, 0.4, 0.84, 58, 140, road, rand, occupied, pine, pineTint, [0.82, 1.12]);
   pine.name = "pine";
 
-  const leaf = makeLayer(broadleafGeom(), windMaterial({ roughness: 0.62 }, wind), 28, true);
-  scatter(28, 0.4, 0.8, 58, 155, road, rand, occupied, leaf, (c, r) => {
-    c.setRGB(1, 0.78 + r() * 0.18, 0.42 + r() * 0.18);
-  }, [1.45, 2.3]);
+  const squat = makeLayer(squatPineGeom(), pineMat, 16, true);
+  scatter(16, 0.4, 0.86, 56, 130, road, rand, occupied, squat, pineTint, [0.82, 1.12]);
+  squat.name = "pine-squat";
+
+  const leaf = makeLayer(broadleafGeom(), windMaterial({ roughness: 0.68 }, wind), 22, true);
+  scatter(22, 0.45, 0.82, 60, 145, road, rand, occupied, leaf, (c, r) => {
+    const t = r();
+    c.setRGB(0.86 + t * 0.08, 0.58 + t * 0.1, 0.34 + t * 0.08);
+  }, [0.78, 1.08]);
   leaf.name = "broadleaf";
 
   const shrub = makeLayer(
     shrubGeom(),
     windMaterial(
-      { roughness: 0.5, emissive: 0x7dcea0, emissiveIntensity: 0.48 },
+      { roughness: 0.55, emissive: 0x7dcea0, emissiveIntensity: 0.18 },
       wind,
     ),
-    52,
+    40,
     false,
   );
-  scatter(52, 0.2, 0.86, 52, 120, road, rand, occupied, shrub, (c, r) => {
-    c.setRGB(0.8 + r() * 0.18, 1, 0.88 + r() * 0.1);
-  }, [1.4, 2.2]);
+  scatter(40, 0.25, 0.88, 54, 120, road, rand, occupied, shrub, (c, r) => {
+    const t = r();
+    c.setRGB(0.6 + t * 0.1, 0.74 + t * 0.08, 0.64 + t * 0.08);
+  }, [0.95, 1.45]);
   shrub.name = "shrub";
 
   const crystal = makeLayer(
     crystalGeom(),
     windMaterial(
       {
-        roughness: 0.18,
-        metalness: 0.38,
+        roughness: 0.22,
+        metalness: 0.32,
         emissive: 0x2ee6c5,
-        emissiveIntensity: 1.15,
+        emissiveIntensity: 0.45,
       },
       wind,
     ),
-    32,
+    18,
     false,
   );
-  scatter(32, 0.25, 0.84, 54, 125, road, rand, occupied, crystal, (c, r) => {
-    c.setRGB(0.9 + r() * 0.1, 1, 0.92 + r() * 0.08);
-  }, [1.45, 2.2]);
+  scatterGroves(18, 3, 0.85, 0.45, 68, 120, road, rand, occupied, crystal, (c, r) => {
+    c.setRGB(0.62 + r() * 0.12, 0.78 + r() * 0.08, 0.72 + r() * 0.1);
+  }, [1.0, 1.4]);
   crystal.name = "crystal";
 
   const grass = makeLayer(
     grassGeom(),
-    windMaterial({ roughness: 0.86, side: THREE.DoubleSide }, wind),
-    180,
+    windMaterial({ roughness: 0.88, side: THREE.DoubleSide }, wind),
+    150,
     false,
   );
-  scatter(180, 0.05, 0.9, 50, 110, road, rand, occupied, grass, (c, r) => {
-    c.setRGB(0.55 + r() * 0.2, 0.72 + r() * 0.18, 0.32 + r() * 0.12);
-  }, [1.7, 2.7]);
+  scatter(150, 0.08, 0.9, 52, 105, road, rand, occupied, grass, (c, r) => {
+    const t = r();
+    c.setRGB(0.66 + t * 0.1, 0.74 + t * 0.08, 0.66 + t * 0.08);
+  }, [1.0, 1.55]);
   grass.name = "grass";
 
-  root.add(pine, leaf, shrub, crystal, grass);
+  const slabs = makeLayer(
+    slabRockGeom(),
+    new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: getRockMap(),
+      roughness: 0.94,
+      metalness: 0.08,
+      flatShading: true,
+    }),
+    30,
+    true,
+  );
+  slabs.castShadow = true;
+  scatter(30, 0.55, 0.7, 70, 160, road, rand, occupied, slabs, (c, r) => {
+    c.setRGB(0.58 + r() * 0.1, 0.62 + r() * 0.08, 0.7 + r() * 0.1);
+  }, [0.55, 1.2]);
+  slabs.name = "rock-slab";
+
+  root.add(pine, squat, leaf, shrub, crystal, grass, slabs);
   return root;
 }

@@ -112,13 +112,12 @@ export function getGroundMap(): THREE.CanvasTexture {
           const ridge = 1 - Math.abs(tileFbm(noise, u + 0.17, v, 6, 3));
           const crack = ridge > 0.88 ? (ridge - 0.88) / 0.12 : 0;
           const ash = (n + 1) * 0.5;
-          const r = 52 + ash * 78 + grit * 16 - crack * 42;
-          const g = 50 + ash * 70 + grit * 12 - crack * 38;
-          const b = 56 + ash * 74 + grit * 14 - crack * 34;
-          const amber = grit > 0.55 ? (grit - 0.55) * 28 : 0;
+          const r = 76 + ash * 84 + grit * 8 - crack * 36;
+          const g = 78 + ash * 84 + grit * 6 - crack * 30;
+          const b = 90 + ash * 86 + grit * 8 - crack * 18;
           const i = (y * size + x) * 4;
-          data[i] = Math.max(0, Math.min(255, r + amber * 1.4));
-          data[i + 1] = Math.max(0, Math.min(255, g + amber * 0.7));
+          data[i] = Math.max(0, Math.min(255, r));
+          data[i + 1] = Math.max(0, Math.min(255, g));
           data[i + 2] = Math.max(0, Math.min(255, b));
           data[i + 3] = 255;
         }
@@ -184,9 +183,9 @@ export function getRockMap(): THREE.CanvasTexture {
           const n = tileFbm(noise, u, v, 6, 4);
           const pit = tileNoise(noise, u, v, 18);
           const shade = (n + 1) * 0.5;
-          const r = 78 + shade * 58 + pit * 18;
-          const g = 72 + shade * 50 + pit * 10;
-          const b = 68 + shade * 46;
+          const r = 48 + shade * 40 + pit * 8;
+          const g = 52 + shade * 38 + pit * 6;
+          const b = 62 + shade * 42 + pit * 8;
           const i = (y * size + x) * 4;
           data[i] = Math.max(0, Math.min(255, r));
           data[i + 1] = Math.max(0, Math.min(255, g));

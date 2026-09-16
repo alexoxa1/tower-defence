@@ -122,7 +122,7 @@ export class WorldRenderer implements BoardHitTest {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.34;
+    this.renderer.toneMappingExposure = 1.16;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -134,8 +134,8 @@ export class WorldRenderer implements BoardHitTest {
     const d = 52;
     this.cameraOffset.set(d, d * 1.08, d);
 
-    this.scene.add(new THREE.HemisphereLight(0xcfc4b4, 0x3a342e, 1.42));
-    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.62);
+    this.scene.add(new THREE.HemisphereLight(0xb4bcc8, 0x24262c, 0.7));
+    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.1);
     this.keyLight.position.set(18, 30, 12);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -147,10 +147,10 @@ export class WorldRenderer implements BoardHitTest {
     this.keyLight.shadow.camera.far = 90;
     this.scene.add(this.keyLight);
     this.scene.add(this.keyLight.target);
-    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.78);
+    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.4);
     fill.position.set(-14, 18, -10);
     this.scene.add(fill);
-    this.scene.add(new THREE.AmbientLight(0x5a564e, 1.05));
+    this.scene.add(new THREE.AmbientLight(0x3a3e46, 0.45));
     this.applyCamera();
 
     warmupWorldTextures();
@@ -193,7 +193,7 @@ export class WorldRenderer implements BoardHitTest {
     const size = new THREE.Vector2(canvas.clientWidth || 800, canvas.clientHeight || 600);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(size, 0.28, 0.2, 0.52);
+    this.bloom = new UnrealBloomPass(size, 0.28, 0.2, 0.72);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
@@ -372,7 +372,7 @@ export class WorldRenderer implements BoardHitTest {
     if (this.reducedMotion) return;
 
     tickEmbers(this.embers, t);
-    const pulse = 0.46 + Math.sin(t * 1.4) * 0.08;
+    const pulse = 0.82 + Math.sin(t * 1.4) * 0.1;
     for (const mat of this.lavaMats) mat.emissiveIntensity = pulse;
 
     this.scene.traverse((obj) => {
@@ -475,12 +475,12 @@ export class WorldRenderer implements BoardHitTest {
     const mesh = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
-        color: 0xd8d2c8,
+        color: 0xffffff,
         map: groundMap,
-        roughness: 0.9,
+        roughness: 0.92,
         metalness: 0.04,
-        emissive: 0x2a241c,
-        emissiveIntensity: 0.16,
+        emissive: 0x222a38,
+        emissiveIntensity: 0.14,
         flatShading: true,
       }),
     );
@@ -504,18 +504,48 @@ export class WorldRenderer implements BoardHitTest {
     return dxOut * dxOut + dzOut * dzOut < r2;
   }
 
+  private sampleCorridor(rand: () => number, inner: number, outer: number): { wx: number; wz: number } {
+    const road = this.currentRoad;
+    const i = Math.min(road.length - 2, Math.floor(rand() * Math.max(1, road.length - 1)));
+    const a = road[i];
+    const b = road[i + 1];
+    const t = rand();
+    const lx = a.x + (b.x - a.x) * t;
+    const ly = a.y + (b.y - a.y) * t;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const dist = inner + rand() * (outer - inner);
+    const side = rand() < 0.5 ? 1 : -1;
+    const w = logicalToWorld(lx + (-dy / len) * dist * side, ly + (dx / len) * dist * side, 0);
+    return { wx: w.x, wz: w.z };
+  }
+
   private buildRocks(layoutId: string): void {
     const rand = seeded(90210 ^ layoutSeed(layoutId));
-    for (let i = 0; i < 140; i += 1) {
-      const rx = (rand() - 0.5) * 110;
-      const rz = (rand() - 0.5) * 82;
-      if (this.occupied(rx, rz, 3.4)) continue;
+    let placed = 0;
+    let attempts = 0;
+    while (placed < 40 && attempts < 40 * 24) {
+      attempts += 1;
+      let rx: number;
+      let rz: number;
+      if (this.currentRoad.length > 1 && rand() < 0.78) {
+        const sample = this.sampleCorridor(rand, 72, 160);
+        rx = sample.wx;
+        rz = sample.wz;
+      } else {
+        rx = (rand() - 0.5) * 110;
+        rz = (rand() - 0.5) * 82;
+      }
+      if (this.occupied(rx, rz, 0.6)) continue;
       const rock = makeJaggedRock(rand);
-      const h = 0.6 + rand() * 2.4;
-      rock.position.set(rx, h * 0.35, rz);
-      rock.scale.setScalar(0.8 + rand() * 1.6);
-      rock.rotation.set(rand() * 0.4, rand() * Math.PI, rand() * 0.3);
+      const s = 0.5 + rand() * 0.8;
+      const h = 0.4 + rand() * 1.0;
+      rock.position.set(rx, h * 0.18, rz);
+      rock.scale.set(s, h, s);
+      rock.rotation.set(rand() * 0.28, rand() * Math.PI, rand() * 0.2);
       this.propRoot.add(rock);
+      placed += 1;
     }
   }
 
@@ -579,9 +609,9 @@ export class WorldRenderer implements BoardHitTest {
     const lavaMat = new THREE.MeshStandardMaterial({
       color: 0x3a2214,
       map: getRoadMap(),
-      emissive: 0x9a3c14,
+      emissive: 0xc44a18,
       emissiveMap: getLavaMap(),
-      emissiveIntensity: 0.46,
+      emissiveIntensity: 0.82,
       roughness: 0.68,
       metalness: 0.06,
     });
