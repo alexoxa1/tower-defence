@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "create-user": "bun run scripts/create-user.ts",
     "test": "vitest run",
     "graphify:update": "graphify update ."
   },
@@ -15,6 +16,7 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/syne": "^5.3.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.116.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "three": "^0.186.0"

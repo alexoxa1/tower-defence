@@ -7,6 +7,7 @@ import { SelectionPanel } from "./components/SelectionPanel";
 import { ShopPanel } from "./components/ShopPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { Toast } from "./components/Toast";
+import { SignOutControl } from "./auth/SignOutControl";
 import { useGameEngine } from "./hooks/useGameEngine";
 import "@fontsource/syne/700.css";
 import "@fontsource/syne/800.css";
@@ -53,6 +54,7 @@ export default function App() {
             interactionMode={snapshot.interactionMode}
           />
           <Header snapshot={snapshot} actions={actions} />
+          <SignOutControl />
           <StatsPanel snapshot={snapshot} />
           <Toast message={snapshot.toast} />
           <GameOverOverlay snapshot={snapshot} actions={actions} />
