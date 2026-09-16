@@ -1,9 +1,10 @@
 .auth-screen {
   width: 100%;
   min-height: 100dvh;
+  min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   background:
     radial-gradient(circle at 50% -10%, rgba(255, 106, 26, 0.14), transparent 55%),
     #050505;
@@ -111,10 +112,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-}
-
-.auth-submit:hover:not(:disabled) {
-  filter: brightness(1.08);
 }
 
 .auth-submit:focus-visible {
@@ -227,13 +224,50 @@
   cursor: pointer;
 }
 
-.auth-signout-btn:hover {
-  border-color: rgba(255, 106, 26, 0.45);
-}
-
 .auth-signout-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+@media (max-width: 720px), (max-height: 540px) {
+  .auth-topbar {
+    top: auto;
+    left: auto;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    transform: none;
+  }
+
+  .auth-signout {
+    padding: 4px 6px;
+    gap: 0;
+  }
+
+  .auth-signout-email {
+    display: none;
+  }
+
+  .auth-signout-btn {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .auth-signout-btn:hover {
+    border-color: rgba(255, 106, 26, 0.45);
+  }
+
+  .auth-submit:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+@media (pointer: coarse) {
+  .auth-field input,
+  .auth-submit {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {

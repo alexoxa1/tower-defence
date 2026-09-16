@@ -14,3 +14,5 @@ Towers: Hex Gun (orange `#ff6a1a`), Mortar Post (teal `#2ee6c5`), Rail Sniper (m
 HUD accent is amber. Tower bodies follow the 3D materials.
 Enemies: Creep, Runner, Brute, Swarm, Warden, Shade, Colossus, Overlord.
 Lose state title: Rift Broken.
+
+Small screens keep the same tokens. Layout stacks the command rack under the board when the viewport is narrow or short. Coarse pointers get 44px targets and no hover-only affordances. Board gestures for touch are in `docs/design/touch-and-small-screens.md`.

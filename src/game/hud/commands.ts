@@ -19,6 +19,9 @@ export interface HudCommands {
   setReducedMotion: (on: boolean) => void;
   selectLayout: (id: LayoutId) => void;
   handleKeyDown: (key: string, code: string, ctrlKey: boolean) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
 }
 
 export interface BoardInput {

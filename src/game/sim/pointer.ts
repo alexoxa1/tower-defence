@@ -1,4 +1,4 @@
-import { RELOCATE_THRESHOLD } from "../constants";
+import { RELOCATE_THRESHOLD, RELOCATE_THRESHOLD_COARSE } from "../constants";
 import type { WatchPorts } from "./ports";
 import { idleDrag, proposedRelocatePositions } from "./drag";
 import { refreshPreview } from "./preview";
@@ -16,6 +16,8 @@ export interface PointerOptions {
   metaKey: boolean;
   altKey?: boolean;
   shiftKey?: boolean;
+  pointerType?: string;
+  pointerId?: number;
 }
 
 export { idleDrag, dragOffset, proposedRelocatePositions } from "./drag";
@@ -36,12 +38,18 @@ function captureOrigins(state: GameState, anchorId: string): Map<string, Point> 
   return originPositions;
 }
 
-function armPending(state: GameState, anchorId: string, pressPoint: Point): void {
+function armPending(
+  state: GameState,
+  anchorId: string,
+  pressPoint: Point,
+  coarsePointer: boolean,
+): void {
   state.drag = {
     kind: "pending",
     pressPoint,
     anchorTowerId: anchorId,
     originPositions: captureOrigins(state, anchorId),
+    coarsePointer,
   };
 }
 
@@ -71,7 +79,9 @@ export function pointerDown(
 
     state.selectedTowerIds = new Set([clickedTower.id]);
     if (options.button === 0) {
-      armPending(state, clickedTower.id, point);
+      const coarsePointer =
+        options.pointerType === "touch" || options.pointerType === "pen";
+      armPending(state, clickedTower.id, point, coarsePointer);
     } else {
       cancelDrag(state);
     }
@@ -101,7 +111,10 @@ export function pointerMove(state: GameState, point: Point): void {
   if (state.drag.kind === "pending") {
     const dx = point.x - state.drag.pressPoint.x;
     const dy = point.y - state.drag.pressPoint.y;
-    if (Math.hypot(dx, dy) > RELOCATE_THRESHOLD) {
+    const threshold = state.drag.coarsePointer
+      ? RELOCATE_THRESHOLD_COARSE
+      : RELOCATE_THRESHOLD;
+    if (Math.hypot(dx, dy) > threshold) {
       state.drag = {
         kind: "relocating",
         pressPoint: state.drag.pressPoint,

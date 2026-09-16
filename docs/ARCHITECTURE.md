@@ -48,7 +48,7 @@ Logical space is 1400x1000. `GameState.road` is the live Road for the current La
 
 **3D view.** `WorldRenderer` plus `models.ts`, `coords.ts`, `dispose.ts`. Mesh factories and bloom stay behind the renderer interface.
 
-**HUD.** `App` shells the board and command rack. `GameCanvas` binds pointer and wheel to `BoardInput`. `Header`, `StatsPanel`, `ShopPanel`, `ControlsPanel`, `SelectionPanel`, `Toast`, and `GameOverOverlay` are shallow adapters over snapshot and `HudCommands`. `ShopPanel` is the Armory. `GameOverOverlay` is Rift Broken. CSS tokens are `src/styles/tokens.css`. Layout is `src/styles/app.css`.
+**HUD.** `App` shells the board and command rack. `GameCanvas` binds pointer and wheel to `BoardInput`. `Header`, `StatsPanel`, `ShopPanel`, `ControlsPanel`, `SelectionPanel`, `Toast`, and `GameOverOverlay` are shallow adapters over snapshot and `HudCommands`. `ShopPanel` is the Armory. `GameOverOverlay` is Rift Broken. CSS tokens are `src/styles/tokens.css`. Layout is `src/styles/app.css`. Compact / coarse-pointer layout is `docs/design/touch-and-small-screens.md`. Screen pan, pinch, and tap slop are `ScreenPointerHub` in `src/game/sim/screenPointer.ts`.
 
 **Audio.** `src/game/audio/AudioEngine.ts`. Web Audio blips keyed by `SoundName`.
 
@@ -89,6 +89,8 @@ HUD modules in `src/components/` are shallow. They map snapshot fields to DOM an
 | `src/game/sim/ports.ts` | `WatchPorts` |
 | `src/game/sim/preview.ts` | Placement preview and `interactionMode` |
 | `src/game/sim/pointer.ts` | Logical pointer commands |
+| `src/game/sim/screenPointer.ts` | Screen pan, pinch, tap vs place |
+| `src/game/sim/screenPick.ts` | Fat-finger nearest-id in screen pixels |
 | `src/game/sim/drag.ts` | DragState helpers |
 | `src/game/sim/boardHit.ts` | `BoardHitTest` |
 | `src/game/hud/commands.ts` | `HudCommands`, `BoardInput` |
@@ -128,6 +130,7 @@ HUD modules in `src/components/` are shallow. They map snapshot fields to DOM an
 | Tower cost, Range, damage | `TOWER_TYPES` then `towerStats.ts` |
 | Place legality | `placement.ts` then `preview.ts` |
 | Select vs relocate | `src/game/sim/pointer.ts` |
+| Pan, pinch, tap slop | `src/game/sim/screenPointer.ts` |
 | Named Road plans | `src/game/config/layouts.ts` |
 | Kill Reward, Combo, shake, Rift Broken | `combat.ts` |
 | Lives, starting gold | `constants.ts` and `createInitialState.ts` |

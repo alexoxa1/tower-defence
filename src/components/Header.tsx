@@ -1,5 +1,5 @@
 import { useRef, useState, type MouseEvent } from "react";
-import { GearSix, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import { GearSix, House, Minus, Plus, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import type { HudCommands } from "../game/hud/commands";
 import type { LayoutId, UiSnapshot } from "../game/types";
 
@@ -90,6 +90,32 @@ export function Header({
         >
           <Question size={15} weight="bold" aria-hidden="true" />
         </button>
+        <div className="view-cluster" role="group" aria-label="Board view">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Zoom out"
+            onClick={() => actions?.zoomOut()}
+          >
+            <Minus size={15} weight="bold" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Reset board view"
+            onClick={() => actions?.resetView()}
+          >
+            <House size={15} weight="bold" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Zoom in"
+            onClick={() => actions?.zoomIn()}
+          >
+            <Plus size={15} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <dialog
@@ -188,17 +214,19 @@ export function Header({
           How to play
         </h2>
         <p className="help-copy">
-          Click empty ground to place. Click a tower to select. Drag a selected
-          tower to move it. Click ↑ to upgrade. Drag empty ground to pan. Pick a
-          tower in the Armory, or press <kbd>V</kbd> for Scout. Scroll to zoom.{" "}
-          <kbd>W</kbd>
+          Place from the Armory. On a mouse: click empty ground to place, drag
+          empty ground to pan, scroll to zoom. On a phone: drag to aim the ghost,
+          lift to place, two fingers pan and pinch-zoom. Use + / − / home on the
+          board if pinch is awkward. Tap a tower to select. Drag it to relocate.
+          Upgrade and sell from the command rack. Pick Scout in the Armory to pan
+          without placing. Keyboard: <kbd>V</kbd> Scout, <kbd>1</kbd> to{" "}
+          <kbd>5</kbd> Armory, <kbd>W</kbd>
           <kbd>A</kbd>
           <kbd>S</kbd>
-          <kbd>D</kbd> also pan, <kbd>Home</kbd> resets the view.{" "}
-          <kbd>Ctrl</kbd>+click or right-click a tower for multi-select. Speed{" "}
-          <kbd>[</kbd>
-          <kbd>]</kbd>, mute <kbd>M</kbd>, Armory <kbd>1</kbd> to <kbd>5</kbd>,
-          pause <kbd>Space</kbd>, upgrade <kbd>U</kbd>, clear <kbd>Esc</kbd>.
+          <kbd>D</kbd> pan, <kbd>Home</kbd> reset view, <kbd>Ctrl</kbd>+click or
+          right-click to link towers, Speed <kbd>[</kbd>
+          <kbd>]</kbd>, mute <kbd>M</kbd>, pause <kbd>Space</kbd>, upgrade{" "}
+          <kbd>U</kbd>, clear <kbd>Esc</kbd>.
         </p>
         <button
           type="button"

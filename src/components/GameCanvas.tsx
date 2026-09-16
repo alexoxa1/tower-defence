@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 import type { BoardInput } from "../game/hud/commands";
+import type { PointerOptions } from "../game/sim/pointer";
 import type { InteractionMode } from "../game/types";
 
 interface GameCanvasProps {
@@ -8,6 +9,18 @@ interface GameCanvasProps {
   isDragging: boolean;
   isPanning: boolean;
   interactionMode: InteractionMode;
+}
+
+function pointerOptions(e: PointerEvent): PointerOptions {
+  return {
+    button: e.button,
+    ctrlKey: e.ctrlKey,
+    metaKey: e.metaKey,
+    altKey: e.altKey,
+    shiftKey: e.shiftKey,
+    pointerType: e.pointerType,
+    pointerId: e.pointerId,
+  };
 }
 
 export function GameCanvas({
@@ -22,23 +35,17 @@ export function GameCanvas({
     if (!canvas || !input) return;
 
     const onMove = (e: PointerEvent) => {
-      input.handleScreenPointer("move", e.clientX, e.clientY);
+      input.handleScreenPointer("move", e.clientX, e.clientY, pointerOptions(e));
     };
 
     const onDown = (e: PointerEvent) => {
-      if (e.button === 1) e.preventDefault();
+      if (e.pointerType !== "mouse" || e.button === 1) e.preventDefault();
       canvas.setPointerCapture(e.pointerId);
-      input.handleScreenPointer("down", e.clientX, e.clientY, {
-        button: e.button,
-        ctrlKey: e.ctrlKey,
-        metaKey: e.metaKey,
-        altKey: e.altKey,
-        shiftKey: e.shiftKey,
-      });
+      input.handleScreenPointer("down", e.clientX, e.clientY, pointerOptions(e));
     };
 
     const onUp = (e: PointerEvent) => {
-      input.handleScreenPointer("up", e.clientX, e.clientY);
+      input.handleScreenPointer("up", e.clientX, e.clientY, pointerOptions(e));
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
@@ -55,7 +62,8 @@ export function GameCanvas({
       input.handleWheel(e.deltaY);
     };
 
-    const onLeave = () => {
+    const onLeave = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
       input.handlePointerMove({ x: -999, y: -999 });
     };
 
@@ -95,7 +103,7 @@ export function GameCanvas({
       ref={canvasRef}
       className={className}
       tabIndex={0}
-      aria-label="Citadel Watch board. Drag to pan, scroll to zoom. Pick a tower in the Armory to build."
+      aria-label="Citadel Watch board. Drag to pan. Pinch or use plus and minus to zoom. Pick a tower in the Armory to build."
     />
   );
 }

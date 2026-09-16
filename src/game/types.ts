@@ -42,6 +42,7 @@ export type DragState =
       pressPoint: Point;
       anchorTowerId: string;
       originPositions: Map<string, Point>;
+      coarsePointer: boolean;
     }
   | {
       kind: "relocating";

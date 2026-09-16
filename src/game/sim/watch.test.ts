@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, RELOCATE_THRESHOLD, STARTING_GOLD, TOWER_TYPES } from "../constants";
+import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, RELOCATE_THRESHOLD, RELOCATE_THRESHOLD_COARSE, STARTING_GOLD, TOWER_TYPES } from "../constants";
 import { Enemy } from "../entities/Enemy";
 import { buildUiSnapshot } from "../hud/snapshot";
 import { createInitialState } from "../state/createInitialState";
@@ -286,6 +286,23 @@ describe("pointer select vs relocate", () => {
 
     expect(tower.x).toBeCloseTo(origin.x + 4);
     expect(tower.y).toBeCloseTo(origin.y);
+  });
+
+  it("needs more travel to relocate on a touch press", () => {
+    const state = createInitialState();
+    state.gold = 1000;
+    state.selectedBuildType = "basic";
+    buildTower(state, OPEN_GROUND, silentPorts);
+    const tower = state.towers[0];
+    const origin = { x: tower.x, y: tower.y };
+    const press = { x: origin.x, y: origin.y };
+    const touch = { button: 0, ctrlKey: false, metaKey: false, pointerType: "touch" };
+
+    pointerDown(state, press, touch, silentPorts);
+    pointerMove(state, { x: origin.x + RELOCATE_THRESHOLD + 1, y: origin.y });
+    expect(state.drag.kind).toBe("pending");
+    pointerMove(state, { x: origin.x + RELOCATE_THRESHOLD_COARSE + 1, y: origin.y });
+    expect(state.drag.kind).toBe("relocating");
   });
 });
 
