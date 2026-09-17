@@ -8,7 +8,11 @@ function formatWave(wave: number, campaignWaves: number): string {
 
 export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
   const lowLives = snapshot.lives <= 5;
-  const pressure = `${snapshot.enemiesCount} on Road · ${snapshot.enemiesLeftToSpawn} inbound`;
+  const onRoad = snapshot.enemiesCount;
+  const inbound = snapshot.enemiesLeftToSpawn;
+  const pressureFull = `${onRoad} on Road · ${inbound} inbound`;
+  const pressureCompact =
+    inbound > 0 ? `${onRoad} on Road · ${inbound} in` : `${onRoad} on Road`;
   return (
     <section className="hud-tr" aria-label="Watch stats">
       <div className="stat" aria-label="Gold">
@@ -34,7 +38,7 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className="stat" aria-label={snapshot.waveName}>
+      <div className="stat stat-wave" aria-label={snapshot.waveName}>
         <Waves size={16} weight="bold" color="var(--filament)" aria-hidden="true" />
         <div>
           <span className="stat-label">{snapshot.waveName}</span>
@@ -48,7 +52,8 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
         <div>
           <span className="stat-label">Pressure</span>
           <strong translate="no" aria-live="polite">
-            {pressure}
+            <span className="pressure-full">{pressureFull}</span>
+            <span className="pressure-compact">{pressureCompact}</span>
           </strong>
         </div>
       </div>

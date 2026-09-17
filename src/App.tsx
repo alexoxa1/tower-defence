@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play } from "@phosphor-icons/react";
+import { Pause, Play } from "@phosphor-icons/react";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { GameCanvas } from "./components/GameCanvas";
 import { GameOverOverlay } from "./components/GameOverOverlay";
-import { Header } from "./components/Header";
+import { Header, runStatusAction, statusAction } from "./components/Header";
 import { QuickMenu } from "./components/QuickMenu";
 import { SelectionPanel } from "./components/SelectionPanel";
 import { ShopPanel } from "./components/ShopPanel";
@@ -101,8 +101,8 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [actions, snapshot.quickMenu, toggleHud]);
 
-  const showThumbStart =
-    snapshot.canStartWave && !snapshot.paused && !snapshot.waveActive && !snapshot.gameOver;
+  const thumbVerb = statusAction(snapshot);
+  const thumbPause = snapshot.waveActive && !snapshot.paused;
   const appClass = [
     "app",
     hudHidden ? "is-hud-hidden" : "",
@@ -160,18 +160,20 @@ export default function App() {
               <SelectionPanel snapshot={snapshot} actions={actions} />
             </div>
           </aside>
-          {showThumbStart ? (
+          {snapshot.gameOver ? null : (
             <button
               type="button"
-              className="start-wave-thumb"
-              onClick={() => actions?.startWave()}
+              className={`start-wave-thumb${thumbPause ? " is-wave" : ""}`}
+              onClick={() => runStatusAction(snapshot, actions)}
             >
-              <span>
-                {snapshot.wave === 0 ? "Start wave" : "Start next wave"}
-              </span>
-              <Play size={18} weight="bold" aria-hidden="true" />
+              <span>{thumbVerb}</span>
+              {thumbPause ? (
+                <Pause size={18} weight="bold" aria-hidden="true" />
+              ) : (
+                <Play size={18} weight="bold" aria-hidden="true" />
+              )}
             </button>
-          ) : null}
+          )}
           <Toast message={snapshot.toast} />
           <GameOverOverlay snapshot={snapshot} actions={actions} />
         </section>

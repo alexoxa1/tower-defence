@@ -53,25 +53,16 @@ export function SelectionPanel({
   const buildType = snapshot.selectedBuildType;
   const [confirmSell, setConfirmSell] = useState<string | null>(null);
 
+  if (
+    snapshot.interactionMode !== "build" &&
+    snapshot.interactionMode !== "tower" &&
+    snapshot.interactionMode !== "multi"
+  ) {
+    return null;
+  }
+
   if (selected.length === 0) {
-    if (!buildType) {
-      return (
-        <section className="selected-panel" aria-label="Scout">
-          <p className="section-title">Selected</p>
-          <div className="selected-name">
-            <span>Scout</span>
-            <span className="level-tag">Move</span>
-          </div>
-          <p className="selected-hint hint-fine">
-            Drag the board to pan. Pick a tower in the Armory to build.
-          </p>
-          <p className="selected-hint hint-coarse">
-            Drag to pan. Pinch or tap + / − to zoom. Pick a tower in the Armory to
-            build.
-          </p>
-        </section>
-      );
-    }
+    if (!buildType) return null;
     const buildMeta = ARMORY[buildType];
     return (
       <section className="selected-panel" aria-label="Selected">

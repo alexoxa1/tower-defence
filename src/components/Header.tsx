@@ -15,18 +15,30 @@ import {
 import type { HudCommands } from "../game/hud/commands";
 import type { LayoutId, UiSnapshot } from "../game/types";
 
-function statusLabel(snapshot: UiSnapshot): string {
+export function statusLabel(snapshot: UiSnapshot): string {
   if (snapshot.gameOver) return "RIFT";
   if (snapshot.paused) return "PAUSED";
   if (snapshot.waveActive) return "WAVE";
   return snapshot.wave === 0 ? "HOLD" : "NEXT";
 }
 
-function statusAction(snapshot: UiSnapshot): string {
+export function statusAction(snapshot: UiSnapshot): string {
   if (snapshot.gameOver) return "Rift Broken";
   if (snapshot.paused) return "Resume";
   if (snapshot.waveActive) return "Pause";
   return snapshot.wave === 0 ? "Start wave" : "Start next wave";
+}
+
+export function runStatusAction(
+  snapshot: UiSnapshot,
+  actions: HudCommands | null,
+) {
+  if (snapshot.gameOver) return;
+  if (snapshot.paused || snapshot.waveActive) {
+    actions?.togglePause();
+    return;
+  }
+  if (snapshot.canStartWave && !snapshot.paused) actions?.startWave();
 }
 
 export function Header({
@@ -47,18 +59,7 @@ export function Header({
 
   const label = statusLabel(snapshot);
   const verb = statusAction(snapshot);
-  const canStart = snapshot.canStartWave && !snapshot.paused;
   const layoutNeedsConfirm = snapshot.wave > 0 || snapshot.towerCount > 0;
-  const idleStart = canStart && !snapshot.waveActive && !snapshot.gameOver;
-
-  const onStatus = () => {
-    if (snapshot.gameOver) return;
-    if (snapshot.paused || snapshot.waveActive) {
-      actions?.togglePause();
-      return;
-    }
-    if (canStart) actions?.startWave();
-  };
 
   const closeOnBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === event.currentTarget) event.currentTarget.close();
@@ -78,12 +79,12 @@ export function Header({
 
   return (
     <header className="hud-tl">
-      <div className={`status-bezel${idleStart ? " can-start" : ""}`}>
+      <div className="status-bezel">
         <p className="status-phase">{label}</p>
         <button
           type="button"
           className={`status-box${snapshot.waveActive ? " is-wave" : ""}${snapshot.paused ? " is-paused" : ""}`}
-          onClick={onStatus}
+          onClick={() => runStatusAction(snapshot, actions)}
           disabled={snapshot.gameOver}
           aria-label={verb}
         >

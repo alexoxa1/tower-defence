@@ -136,6 +136,12 @@ body {
   gap: var(--space-2);
   min-width: 0;
   padding: 0;
+  flex: 0 0 auto;
+}
+
+.stat-wave {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .stat + .stat {
@@ -171,6 +177,16 @@ body {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
   white-space: nowrap;
+}
+
+.stat-wave .stat-label,
+.stat-wave strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pressure-compact {
+  display: none;
 }
 
 .stat.danger strong,
@@ -370,7 +386,7 @@ body {
   min-width: 0;
   background: var(--plate-hud);
   border-left: var(--hairline-w) solid var(--hairline);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sheet-peek {
@@ -382,7 +398,7 @@ body {
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   overscroll-behavior: contain;
 }
 
@@ -575,11 +591,14 @@ button.action:disabled,
 }
 
 .selected-panel {
-  position: fixed;
-  right: calc(var(--armory-width) + var(--space-4));
+  position: absolute;
+  right: calc(100% + var(--space-4));
   bottom: var(--space-5);
   z-index: var(--z-hud);
   width: var(--selected-width);
+  max-height: calc(100% - var(--space-5) * 2);
+  overflow: auto;
+  overscroll-behavior: contain;
   color: var(--muted);
   font-size: 13px;
   display: flex;
@@ -1102,8 +1121,18 @@ button.action:focus-visible,
   }
 
   .stat {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
+    min-width: 0;
     gap: 4px;
+  }
+
+  .stat + .stat {
+    padding-left: var(--space-2);
+  }
+
+  .stat-wave {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .stat-score {
@@ -1111,7 +1140,16 @@ button.action:focus-visible,
   }
 
   .stat strong {
-    font-size: 13px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .pressure-full {
+    display: none;
+  }
+
+  .pressure-compact {
+    display: inline;
   }
 
   .hud-account {
@@ -1158,26 +1196,25 @@ button.action:focus-visible,
 
   .status-bezel {
     width: auto;
-    min-width: 96px;
+    min-width: 0;
+    min-height: var(--touch-min);
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .status-bezel.can-start .status-box {
+  .status-bezel .status-box {
     display: none;
   }
 
-  .status-bezel.can-start .status-phase {
+  .status-phase {
     margin: 0;
+    padding: 0;
     color: var(--filament);
-    font-size: 12px;
-    padding: 0 var(--space-2);
-    min-height: var(--touch-min);
-    display: flex;
-    align-items: center;
-  }
-
-  .status-box {
-    min-height: var(--touch-min);
-    height: var(--touch-min);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.14em;
   }
 
   .hud-tools {
@@ -1213,6 +1250,7 @@ button.action:focus-visible,
     z-index: var(--z-dialog);
     box-shadow: var(--shadow-sheet);
     background: var(--soot);
+    overflow: hidden;
   }
 
   .app.is-sheet-expanded .ui-panel {
@@ -1279,6 +1317,7 @@ button.action:focus-visible,
     width: auto;
     right: auto;
     bottom: auto;
+    max-height: none;
     margin: var(--space-2);
   }
 
