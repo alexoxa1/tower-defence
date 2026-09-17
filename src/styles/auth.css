@@ -6,7 +6,7 @@
   place-items: center;
   padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   background:
-    radial-gradient(circle at 50% -10%, rgba(255, 106, 26, 0.14), transparent 55%),
+    radial-gradient(circle at 50% -10%, rgba(232, 165, 75, 0.14), transparent 55%),
     #050505;
 }
 
@@ -319,7 +319,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .auth-signout-btn:hover {
-    border-color: rgba(255, 106, 26, 0.45);
+    border-color: rgba(232, 165, 75, 0.45);
   }
 
   .auth-submit:hover:not(:disabled) {

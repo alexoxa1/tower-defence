@@ -19,12 +19,18 @@ export function startWave(
   state: GameState,
   ports: WatchPorts,
 ): { ok: boolean } {
-  if (state.gameOver) return { ok: false };
+  if (state.gameOver) {
+    ports.play("error");
+    ports.notify("Rift Broken. Start a New Watch.");
+    return { ok: false };
+  }
   if (state.campaignComplete || state.wave >= CAMPAIGN_WAVES) {
+    ports.play("error");
     ports.notify("Campaign complete. Start a New Watch.");
     return { ok: false };
   }
   if (!canStartWave(state)) {
+    ports.play("error");
     ports.notify("Clear the current wave first.");
     return { ok: false };
   }

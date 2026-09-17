@@ -66,6 +66,9 @@ export class AudioEngine {
         this.blip(ctx, now, 220, 0.22, "sawtooth", 0.08);
         this.blip(ctx, now + 0.16, 110, 0.28, "triangle", 0.07);
         break;
+      case "error":
+        this.blip(ctx, now, 125, 0.1, "square", 0.045);
+        break;
     }
   }
 

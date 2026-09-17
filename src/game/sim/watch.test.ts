@@ -12,7 +12,11 @@ import { pauseForOverlay, resumeOverlayPause } from "./pause";
 import { pointerDown, pointerMove, pointerUp } from "./pointer";
 import { applyDamage, resolveEscape } from "../systems/combat";
 import { buildTower, validatePlacement } from "../systems/placement";
-import { canUpgradeTower, towerToSummary } from "../systems/upgrade";
+import {
+  canUpgradeTower,
+  towerToSummary,
+  upgradeTowers,
+} from "../systems/upgrade";
 import { getEffectiveStats } from "../config/towerStats";
 import { getLayout } from "../config/layouts";
 import {
@@ -60,6 +64,16 @@ describe("placement preview", () => {
     expect(state.placementPreview.visible).toBe(true);
     expect(state.placementPreview.ok).toBe(false);
     expect(state.placementPreview.reason).toMatch(/road/i);
+  });
+
+  it("reports invalid placement with explicit text and error audio", () => {
+    const state = createInitialState();
+    const rec = createRecordingPorts();
+    state.selectedBuildType = "basic";
+
+    expect(buildTower(state, { x: 200, y: 200 }, rec.ports).ok).toBe(false);
+    expect(rec.notes).toContain("Cannot build on the road.");
+    expect(rec.sounds).toContain("error");
   });
 });
 
@@ -271,6 +285,24 @@ describe("Campaign completion", () => {
     });
     expect(snap.phase).toBe("campaign-complete");
     expect(snap.nextWaveName).toBeNull();
+  });
+});
+
+describe("linked Tower economy feedback", () => {
+  it("reports partial bulk upgrades and skipped Towers", () => {
+    const state = createInitialState({ startingGold: 1_000 });
+    const rec = createRecordingPorts();
+    state.selectedBuildType = "basic";
+    buildTower(state, { x: 200, y: 80 }, silentPorts);
+    state.selectedBuildType = "cannon";
+    buildTower(state, { x: 280, y: 80 }, silentPorts);
+    state.gold = 200;
+    const ids = state.towers.map((tower) => tower.id);
+
+    const result = upgradeTowers(state, ids, rec.ports);
+
+    expect(result).toEqual({ upgraded: 1, skipped: 1, totalCost: 78 });
+    expect(rec.notes).toContain("Upgraded 1 tower for $78. 1 skipped.");
   });
 });
 
