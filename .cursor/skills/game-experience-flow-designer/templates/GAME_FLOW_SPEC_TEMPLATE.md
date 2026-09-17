@@ -8,7 +8,7 @@ Use this template when producing game experience, player loop, and UX flow speci
 
 **Role**: Game Experience Director & UX Flow Architect  
 **Status**: Draft / Proposed / Approved  
-**Seam Impact**: [Simulation (`src/game/sim/`) | HUD (`src/components/`, `src/game/hud/`) | 3D View (`src/game/world3d/`)]
+**Seam Impact**: [Simulation (`src/game/sim/`, `src/game/systems/`) | HUD (`src/components/`, `src/game/hud/`) | 3D View (`src/game/world3d/`)]
 
 ---
 
@@ -78,8 +78,8 @@ stateDiagram-v2
 |---|---|---|---|---|
 | Mouse | Hover Armory item | Show stats preview | Tooltip with damage/range/cost | Grayed out if `Gold < Cost` |
 | Mouse | Drag Placed Tower | Initiate Relocate preview | Green ghost circle on legal point | Red circle if point conflicts with road |
-| Touch | Tap Tower (<= 8px drift)| Select tower | Open SelectionPanel (Upgrade/Sell) | Closes if tap on empty ground |
-| Touch | Drag (> 8px drift) | Pan camera view | Smooth canvas pan | Clamped to board boundary |
+| Touch | Tap Tower (<= 16px slop)| Select tower | Open SelectionPanel (Upgrade/Sell) | Deselects if tap on empty ground |
+| Touch | Drag (> 16px slop) | Pan camera view | Smooth canvas pan | Clamped to board boundary |
 | Keyboard | Spacebar | Toggle Pause / Resume | Toast status update | Disabled during Rift Broken |
 
 ---
@@ -110,7 +110,7 @@ All parameters are explicit testable hypotheses:
 |---|---|---|---|
 | Wave 1-3 Gold Inflow | Sufficient for 2 Hex Guns | Player never forced into 0-tower wave 1 | 100% of standard plays start wave with >= 2 towers |
 | Frost Lantern Slow | 35% speed reduction | Groups enemies for Mortar Post splash | Mortar Post damage efficiency increases >= 25% |
-| Relocate Gesture Slop | 8px screen distance threshold | Zero accidental relocations during tap | Less than 1% accidental moves on mobile touch |
+| Relocate Gesture Slop | 16px screen slop / 48 logical units | Zero accidental relocations during tap | Less than 1% accidental moves on coarse touch |
 
 ---
 

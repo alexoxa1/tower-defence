@@ -19,7 +19,7 @@ Strictly adhere to `CONTEXT.md` and `docs/ARCHITECTURE.md`:
 - **Tower names**: Hex Gun, Mortar Post, Rail Sniper, Ward Beacon, Frost Lantern.
 - **Enemy kinds**: Creep, Runner, Brute, Swarm, Warden, Shade, Colossus, Overlord.
 - **Seams**:
-  - `src/game/sim/`: 2D logical space (1400x1000). Headless rules in `advanceWatch`. Owns simulation state, gold, lives, waves, targeting, and placement legality.
+  - `src/game/sim/` & `src/game/systems/`: 2D logical space (1400x1000). Headless rules in `advanceWatch`. Owns simulation state, gold, lives, waves, targeting, and placement legality.
   - `src/game/hud/` & `src/components/`: React HUD reads `UiSnapshot` and issues `HudCommands`. Never imports `GameEngine` or `GameState`.
   - `src/game/world3d/`: Three.js presentation layer synced via `WorldRenderer.sync(state)`. Must never own game state, gold, lives, or rules.
   - `src/game/GameEngine.ts`: Live adapter coordinating RAF tick, input translation, and snapshot emit.
@@ -91,7 +91,7 @@ Do not write or modify application code until user reviews and approves flow spe
 
 Every proposed experience change must pass these checks:
 - [ ] **Domain terms**: Verifiable alignment with `CONTEXT.md`.
-- [ ] **Seam isolation**: Sim rules stay in `src/game/sim/`; HUD in `src/components/` & `src/game/hud/`; 3D view in `src/game/world3d/`.
+- [ ] **Seam isolation**: Sim rules stay in `src/game/sim/` and `src/game/systems/`; HUD in `src/components/` & `src/game/hud/`; 3D view in `src/game/world3d/`.
 - [ ] **No silent failure**: Invalid placement, insufficient gold, or wave lock provides toast/audio feedback.
 - [ ] **Economy balance**: Sinks balance sources; no infinite gold exploits or deadlocks.
 - [ ] **Touch & small screen compliance**: Minimum 44px touch targets; pointer slop handled (`docs/design/touch-and-small-screens.md`).

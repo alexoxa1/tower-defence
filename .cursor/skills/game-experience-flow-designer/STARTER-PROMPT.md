@@ -13,7 +13,7 @@ Audit, design, and specify improvements for:
 
 ## Instructions & Seam Constraints
 1. Grounding: Read CONTEXT.md, DESIGN.md, docs/ARCHITECTURE.md, and relevant modules in src/game/. Use exact domain vocabulary (Watch, Board, Road, In, Out, Citadel, Armory, Tower, Scout, Wave, Campaign, Hold, Rift Broken, Gold, Lives, Reward, Clear bonus, Spent, Refund).
-2. Seam Isolation: Keep simulation logic in src/game/sim/, HUD in src/components/ and src/game/hud/, and 3D rendering in src/game/world3d/. Never let the 3D view or React own game state, gold, or rules.
+2. Seam Isolation: Keep simulation logic in src/game/sim/ and src/game/systems/, HUD in src/components/ and src/game/hud/, and 3D rendering in src/game/world3d/. Never let the 3D view or React own game state, gold, or rules.
 3. Flow Modeling: Produce a complete Markdown flow specification using the template in `.cursor/skills/game-experience-flow-designer/templates/GAME_FLOW_SPEC_TEMPLATE.md`.
    - Model micro, session, and meta loops.
    - Separate navigation flow, simulation/state flow, and interaction-feedback flow.
