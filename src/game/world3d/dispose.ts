@@ -29,13 +29,15 @@ export function disposeObject(root: THREE.Object3D): void {
     const instanced = child as THREE.InstancedMesh;
     if (instanced.isInstancedMesh) instanced.dispose();
     const mesh = child as THREE.Mesh;
-    if (mesh.geometry) {
+    if (mesh.geometry && !mesh.geometry.userData?.shared) {
       mesh.geometry.dispose();
     }
     const mat = (child as THREE.Mesh).material;
     if (!mat) return;
     const list = Array.isArray(mat) ? mat : [mat];
-    for (const item of list) materials.add(item);
+    for (const item of list) {
+      if (!item.userData?.shared) materials.add(item);
+    }
   });
   for (const material of materials) disposeMaterial(material);
 }
