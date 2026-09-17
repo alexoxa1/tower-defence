@@ -23,7 +23,7 @@ export function emptyPlacementPreview(): PlacementPreview {
 }
 
 export function computePlacementPreview(state: GameState): PlacementPreview {
-  if (state.gameOver) return emptyPlacementPreview();
+  if (state.gameOver || state.campaignComplete) return emptyPlacementPreview();
 
   if (state.drag.kind === "relocating") {
     const drag = state.drag;

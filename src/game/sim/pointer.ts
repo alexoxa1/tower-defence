@@ -59,7 +59,7 @@ export function pointerDown(
   options: PointerOptions,
   ports: WatchPorts,
 ): void {
-  if (state.gameOver) return;
+  if (state.gameOver || state.campaignComplete) return;
   if (options.button === 2) return;
 
   const isMultiToggle = options.ctrlKey || options.metaKey;

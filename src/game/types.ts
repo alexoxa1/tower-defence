@@ -12,6 +12,15 @@ export type LayoutId = "serpentine" | "switchback" | "oxbow";
 
 export type InteractionMode = "scout" | "build" | "tower" | "multi";
 
+export type WatchPhase =
+  | "hold"
+  | "wave-arrivals"
+  | "wave-resolution"
+  | "inter-wave"
+  | "paused"
+  | "rift-broken"
+  | "campaign-complete";
+
 export interface Point {
   x: number;
   y: number;
@@ -62,6 +71,11 @@ export interface PlacementPreview {
   type: TowerType | null;
 }
 
+export type PlacementFeedback = Pick<
+  PlacementPreview,
+  "visible" | "ok" | "reason"
+>;
+
 export type EnemyKind =
   | "creep"
   | "runner"
@@ -71,6 +85,13 @@ export type EnemyKind =
   | "shade"
   | "colossus"
   | "overlord";
+
+export interface EscapeSummary {
+  enemyKind: EnemyKind;
+  livesCost: number;
+  remainingLives: number;
+  wave: number;
+}
 
 export interface GameState {
   layoutId: LayoutId;
@@ -96,6 +117,9 @@ export interface GameState {
   paused: boolean;
   speed: GameSpeed;
   gameOver: boolean;
+  campaignComplete: boolean;
+  lastEscape: EscapeSummary | null;
+  lastClearBonus: number;
   drag: DragState;
   elapsed: number;
   shake: { time: number; mag: number };
@@ -147,12 +171,18 @@ export interface UiSnapshot {
   paused: boolean;
   speed: GameSpeed;
   gameOver: boolean;
+  campaignComplete: boolean;
+  phase: WatchPhase;
   selectedBuildType: TowerType | null;
   selectedTowers: TowerSummary[];
   waveName: string;
+  nextWaveName: string | null;
   waveActive: boolean;
   enemiesCount: number;
   enemiesLeftToSpawn: number;
+  lastEscape: EscapeSummary | null;
+  lastClearBonus: number;
+  placementFeedback: PlacementFeedback;
   toast: string | null;
   isDragging: boolean;
   isPanning: boolean;
