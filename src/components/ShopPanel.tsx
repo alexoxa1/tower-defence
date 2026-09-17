@@ -37,15 +37,15 @@ export function ShopPanel({
         const selected =
           snapshot.interactionMode === "build" &&
           snapshot.selectedBuildType === type;
-        const disabled = !snapshot.canAffordBuild[type];
+        const unavailable = !snapshot.canAffordBuild[type];
+        const deficit = Math.max(0, item.cost - snapshot.gold);
         return (
           <button
             key={type}
             type="button"
-            className={`tower-card${selected ? " selected" : ""}`}
-            disabled={disabled}
+            className={`tower-card${selected ? " selected" : ""}${unavailable ? " unavailable" : ""}`}
             aria-pressed={selected}
-            aria-label={`${item.name}, ${formatNumber(item.cost)} gold. ${item.blurb}.`}
+            aria-label={`${item.name}, ${formatNumber(item.cost)} Gold. ${item.blurb}.${unavailable ? ` Need ${formatNumber(deficit)} more Gold.` : ""}`}
             onClick={() => actions?.selectBuildType(type)}
           >
             <span

@@ -14,6 +14,7 @@ import {
   pointerMove,
   pointerUp,
 } from "./sim/pointer";
+import { pauseForOverlay, resumeOverlayPause } from "./sim/pause";
 import { refreshPreview } from "./sim/preview";
 import { ScreenPointerHub } from "./sim/screenPointer";
 import { startWave } from "./systems/waves";
@@ -39,6 +40,7 @@ export class GameEngine {
   private hudKey = "";
   private pointerHub: ScreenPointerHub;
   private quickMenu: QuickMenuAnchor | null = null;
+  private overlayPauseOwned = false;
 
   readonly actions: GameActions;
 
@@ -80,6 +82,8 @@ export class GameEngine {
       selectBuildType: (type) => this.selectBuildType(type),
       startWave: () => this.doStartWave(),
       togglePause: () => this.togglePause(),
+      beginOverlayPause: () => this.beginOverlayPause(),
+      endOverlayPause: () => this.endOverlayPause(),
       setSpeed: (speed) => this.setSpeed(speed),
       resetGame: () => this.resetGame(),
       upgradeTower: (id) => this.doUpgradeTower(id),
@@ -111,7 +115,7 @@ export class GameEngine {
 
     this.setupCanvas();
     this.emitSnapshot();
-    this.showToast("Scout: drag to pan. Pinch or use + / − to zoom.");
+    this.showToast("Defend the Citadel. Place a Tower beside the Road.");
   }
 
   start(): void {
@@ -159,6 +163,7 @@ export class GameEngine {
       s.combo,
       s.paused,
       s.gameOver,
+      s.campaignComplete,
       s.waveActive,
       s.enemies.length,
       s.towers.length,
@@ -168,6 +173,10 @@ export class GameEngine {
       s.speed,
       s.interactionMode,
       s.drag.kind,
+      s.lastClearBonus,
+      s.lastEscape
+        ? `${s.lastEscape.enemyKind},${s.lastEscape.remainingLives}`
+        : "",
       this.toastMessage ?? "",
       this.audio.muted,
       this.reducedMotion,
@@ -265,6 +274,7 @@ export class GameEngine {
 
   private selectLayout(id: LayoutId): void {
     this.quickMenu = null;
+    this.overlayPauseOwned = false;
     resetState(this.state, { layoutId: id });
     this.world.resetView();
     this.emitSnapshot();
@@ -273,7 +283,9 @@ export class GameEngine {
 
   private resetGame(): void {
     this.quickMenu = null;
+    this.overlayPauseOwned = false;
     resetState(this.state);
+    this.world.resetView();
     this.emitSnapshot();
     this.showToast("New Watch. Place a tower, then start the Wave.");
   }
@@ -293,10 +305,22 @@ export class GameEngine {
   }
 
   private togglePause(): void {
-    if (this.state.gameOver) return;
+    if (this.state.gameOver || this.state.campaignComplete) return;
     this.quickMenu = null;
     this.state.paused = !this.state.paused;
     this.showToast(this.state.paused ? "Paused." : "Resumed.");
+  }
+
+  private beginOverlayPause(): void {
+    this.quickMenu = null;
+    this.overlayPauseOwned = pauseForOverlay(this.state);
+    this.emitSnapshot();
+  }
+
+  private endOverlayPause(): void {
+    resumeOverlayPause(this.state, this.overlayPauseOwned);
+    this.overlayPauseOwned = false;
+    this.emitSnapshot();
   }
 
   private setSpeed(speed: GameSpeed): void {
@@ -428,7 +452,8 @@ export class GameEngine {
     const rawDt = Math.min((timestamp - this.lastFrameTime) / 1000, 0.05);
     this.lastFrameTime = timestamp;
 
-    const frozen = this.state.paused || this.state.gameOver;
+    const frozen =
+      this.state.paused || this.state.gameOver || this.state.campaignComplete;
     const dt = frozen ? rawDt : rawDt * this.state.speed;
     advanceWatch(this.state, dt, this.ports, { frozen });
 

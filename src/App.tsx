@@ -8,6 +8,7 @@ import { SelectionPanel } from "./components/SelectionPanel";
 import { ShopPanel } from "./components/ShopPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { Toast } from "./components/Toast";
+import { WatchObjective } from "./components/WatchObjective";
 import { SignOutControl } from "./auth/SignOutControl";
 import { useGameEngine } from "./hooks/useGameEngine";
 import "@fontsource/syne/700.css";
@@ -36,6 +37,7 @@ export default function App() {
       ) {
         return;
       }
+      if (target instanceof HTMLElement && target.closest("dialog")) return;
       if (
         (e.key === "h" || e.key === "H") &&
         !e.ctrlKey &&
@@ -98,9 +100,14 @@ export default function App() {
           </div>
           <SignOutControl />
           <Toast message={snapshot.toast} />
-          <GameOverOverlay snapshot={snapshot} actions={actions} />
+          <GameOverOverlay
+            snapshot={snapshot}
+            actions={actions}
+            onRecovery={() => setHudHidden(false)}
+          />
         </section>
         <aside className="ui-panel" aria-label="Command rack">
+          <WatchObjective snapshot={snapshot} />
           <ShopPanel snapshot={snapshot} actions={actions} />
           <ControlsPanel snapshot={snapshot} actions={actions} />
           <SelectionPanel snapshot={snapshot} actions={actions} />

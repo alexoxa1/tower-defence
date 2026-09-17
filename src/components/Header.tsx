@@ -3,18 +3,20 @@ import { Eye, EyeSlash, GearSix, House, Minus, Plus, Question, SpeakerHigh, Spea
 import type { HudCommands } from "../game/hud/commands";
 import type { LayoutId, UiSnapshot } from "../game/types";
 
-function statusLabel(snapshot: UiSnapshot): string {
-  if (snapshot.gameOver) return "RIFT";
-  if (snapshot.paused) return "PAUSED";
-  if (snapshot.waveActive) return "WAVE";
-  return snapshot.wave === 0 ? "HOLD" : "NEXT";
-}
-
-function statusAction(snapshot: UiSnapshot): string {
-  if (snapshot.gameOver) return "Rift Broken";
-  if (snapshot.paused) return "Resume";
-  if (snapshot.waveActive) return "Pause";
-  return snapshot.wave === 0 ? "Start wave" : "Start next wave";
+export function statusContent(snapshot: UiSnapshot): {
+  phase: string;
+  action: string;
+} {
+  if (snapshot.gameOver) return { phase: "Rift", action: "Rift Broken" };
+  if (snapshot.campaignComplete) {
+    return { phase: "Complete", action: "Campaign Complete" };
+  }
+  if (snapshot.paused) return { phase: "Paused", action: "Resume" };
+  if (snapshot.waveActive) return { phase: "Wave", action: "Pause Wave" };
+  return {
+    phase: snapshot.wave === 0 ? "Hold" : "Next",
+    action: `Start Wave ${snapshot.wave + 1}`,
+  };
 }
 
 export function Header({
@@ -33,17 +35,22 @@ export function Header({
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmLayout, setConfirmLayout] = useState<LayoutId | null>(null);
 
-  const label = statusLabel(snapshot);
+  const status = statusContent(snapshot);
   const canStart = snapshot.canStartWave && !snapshot.paused;
   const layoutNeedsConfirm = snapshot.wave > 0 || snapshot.towerCount > 0;
 
   const onStatus = () => {
-    if (snapshot.gameOver) return;
+    if (snapshot.gameOver || snapshot.campaignComplete) return;
     if (snapshot.paused || snapshot.waveActive) {
       actions?.togglePause();
       return;
     }
     if (canStart) actions?.startWave();
+  };
+
+  const openWithPause = (dialog: HTMLDialogElement | null) => {
+    actions?.beginOverlayPause();
+    dialog?.showModal();
   };
 
   const closeOnBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
@@ -68,10 +75,11 @@ export function Header({
         type="button"
         className="status-box"
         onClick={onStatus}
-        disabled={snapshot.gameOver}
-        aria-label={statusAction(snapshot)}
+        disabled={snapshot.gameOver || snapshot.campaignComplete}
+        aria-label={status.action}
       >
-        {label}
+        <span className="status-phase">{status.phase}</span>
+        <span className="status-action">{status.action}</span>
       </button>
       <button
         type="button"
@@ -103,7 +111,7 @@ export function Header({
           onClick={() => {
             setConfirmReset(false);
             setConfirmLayout(null);
-            settingsRef.current?.showModal();
+            openWithPause(settingsRef.current);
           }}
         >
           <GearSix size={15} weight="bold" aria-hidden="true" />
@@ -112,7 +120,7 @@ export function Header({
           type="button"
           className="icon-btn"
           aria-label="How to play"
-          onClick={() => helpRef.current?.showModal()}
+          onClick={() => openWithPause(helpRef.current)}
         >
           <Question size={15} weight="bold" aria-hidden="true" />
         </button>
@@ -149,10 +157,12 @@ export function Header({
         className="hud-dialog"
         aria-labelledby="settings-title"
         onClick={closeOnBackdrop}
+        onClose={() => actions?.endOverlayPause()}
       >
         <h2 id="settings-title" className="section-title">
           Settings
         </h2>
+        <p className="dialog-note">Watch paused while Settings is open.</p>
         <div className="dialog-actions">
           <button
             type="button"
@@ -235,10 +245,12 @@ export function Header({
         className="hud-dialog"
         aria-labelledby="help-title"
         onClick={closeOnBackdrop}
+        onClose={() => actions?.endOverlayPause()}
       >
         <h2 id="help-title" className="section-title">
           How to play
         </h2>
+        <p className="dialog-note">Watch paused while Help is open.</p>
         <p className="help-copy">
           Place from the Armory. On a mouse: click empty ground to place, drag
           empty ground to pan, scroll to zoom. On a phone: drag to aim the ghost,

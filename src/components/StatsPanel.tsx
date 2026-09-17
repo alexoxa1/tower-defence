@@ -14,15 +14,20 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
         <Diamond size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>
           <span className="stat-label">Gold</span>
-          <strong translate="no" aria-live="polite">
+          <strong translate="no">
             {formatNumber(snapshot.gold)}
           </strong>
         </div>
       </div>
-      <div className={`stat${lowLives ? " danger" : ""}`} aria-label="Lives">
+      <div
+        className={`stat${lowLives ? " danger" : ""}`}
+        aria-label={lowLives ? "Lives, critical" : "Lives"}
+      >
         <Heart size={16} weight="fill" color="var(--teal)" aria-hidden="true" />
         <div>
-          <span className="stat-label">Lives</span>
+          <span className="stat-label">
+            Lives{lowLives ? " · Critical" : ""}
+          </span>
           <strong translate="no" aria-live="polite">
             {snapshot.lives}
           </strong>
@@ -37,6 +42,20 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
+      {snapshot.waveActive ? (
+        <div
+          className="stat wave-pressure"
+          aria-label={`${snapshot.enemiesCount} enemies active, ${snapshot.enemiesLeftToSpawn} arrivals remaining`}
+        >
+          <Waves size={16} weight="bold" color="var(--teal)" aria-hidden="true" />
+          <div>
+            <span className="stat-label">Pressure</span>
+            <strong translate="no">
+              {snapshot.enemiesCount} active · {snapshot.enemiesLeftToSpawn} in
+            </strong>
+          </div>
+        </div>
+      ) : null}
       <div className="stat" aria-label="Score">
         <Skull size={16} weight="bold" color="var(--accent)" aria-hidden="true" />
         <div>

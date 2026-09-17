@@ -100,7 +100,7 @@ export function upgradeTowers(
 
   const message =
     upgraded > 0
-      ? `Upgraded ${upgraded} tower${upgraded > 1 ? "s" : ""} for ${money(totalCost)}.`
+      ? `Upgraded ${upgraded} tower${upgraded > 1 ? "s" : ""} for ${money(totalCost)}.${skipped > 0 ? ` ${skipped} skipped.` : ""}`
       : "Could not upgrade selected towers.";
 
   if (upgraded > 0) {

@@ -2,8 +2,28 @@ import { useState } from "react";
 import { CaretUp, Crosshair, Diamond, Lightning } from "@phosphor-icons/react";
 import { ARMORY } from "../game/config/armory";
 import type { HudCommands } from "../game/hud/commands";
-import type { TowerType, UiSnapshot } from "../game/types";
+import type { TowerSummary, TowerType, UiSnapshot } from "../game/types";
 import { formatNumber } from "../game/utils/format";
+
+export function bulkUpgradePreview(
+  selected: TowerSummary[],
+  gold: number,
+): { count: number; cost: number; skipped: number } {
+  let remaining = gold;
+  let count = 0;
+  let cost = 0;
+  let skipped = 0;
+  for (const tower of selected) {
+    if (tower.atMaxLevel || remaining < tower.upgradeCost) {
+      skipped += 1;
+      continue;
+    }
+    remaining -= tower.upgradeCost;
+    cost += tower.upgradeCost;
+    count += 1;
+  }
+  return { count, cost, skipped };
+}
 
 function UnitPortrait({ type }: { type: TowerType }) {
   const swatch = ARMORY[type].swatch;
@@ -132,7 +152,7 @@ export function SelectionPanel({
                 ? `Upgrade Level ${nextLevel}`
                 : tower.atMaxLevel
                   ? "Max Level"
-                  : `Need ${formatNumber(tower.upgradeCost)}`
+                  : `Need ${formatNumber(tower.upgradeCost - snapshot.gold)} more`
             }
             cost={tower.canUpgrade ? tower.upgradeCost : undefined}
             disabled={!tower.canUpgrade}
@@ -163,11 +183,8 @@ export function SelectionPanel({
     );
   }
 
-  const bulkCost = selected.reduce(
-    (sum, t) => (t.canUpgrade ? sum + t.upgradeCost : sum),
-    0,
-  );
-  const canUpgradeAny = selected.some((t) => t.canUpgrade);
+  const bulkUpgrade = bulkUpgradePreview(selected, snapshot.gold);
+  const canUpgradeAny = bulkUpgrade.count > 0;
   const totalRefund = selected.reduce((sum, t) => sum + t.refund, 0);
   const sellArmed = confirmSell === "all";
 
@@ -187,8 +204,12 @@ export function SelectionPanel({
       </ul>
       <div className="upgrade-row">
         <UpgradeBar
-          label="Upgrade All"
-          cost={canUpgradeAny ? bulkCost : undefined}
+          label={
+            bulkUpgrade.skipped > 0
+              ? `Upgrade ${bulkUpgrade.count} of ${selected.length}`
+              : "Upgrade All"
+          }
+          cost={canUpgradeAny ? bulkUpgrade.cost : undefined}
           disabled={!canUpgradeAny}
           onClick={() => actions?.upgradeSelected()}
         />
