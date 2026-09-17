@@ -177,6 +177,9 @@ export class GameEngine {
       s.lastEscape
         ? `${s.lastEscape.enemyKind},${s.lastEscape.remainingLives}`
         : "",
+      s.placementPreview.visible,
+      s.placementPreview.ok,
+      s.placementPreview.reason,
       this.toastMessage ?? "",
       this.audio.muted,
       this.reducedMotion,
