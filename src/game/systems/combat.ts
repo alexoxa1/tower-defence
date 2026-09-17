@@ -27,6 +27,7 @@ export function applyDamage(
   amount: number,
   ports: WatchPorts,
 ): boolean {
+  if (state.gameOver || state.campaignComplete) return false;
   const killed = enemy.takeDamage(amount);
   if (!killed) {
     ports.play("hit");
@@ -56,8 +57,15 @@ export function resolveEscape(
   state: GameState,
   enemy: Enemy,
   ports: WatchPorts,
-): void {
-  state.lives -= enemy.livesCost;
+): boolean {
+  if (state.gameOver || state.campaignComplete) return true;
+  state.lives = Math.max(0, state.lives - enemy.livesCost);
+  state.lastEscape = {
+    enemyKind: enemy.kind,
+    livesCost: enemy.livesCost,
+    remainingLives: state.lives,
+    wave: state.wave,
+  };
   state.shake = { time: enemy.isBoss ? 0.55 : 0.32, mag: enemy.isBoss ? 12 : 7 };
   state.combo = 0;
   state.comboTimer = 0;
@@ -70,8 +78,10 @@ export function resolveEscape(
   );
   if (state.lives <= 0) {
     breakRift(state, ports);
+    return true;
   } else {
     ports.play("life");
+    return false;
   }
 }
 

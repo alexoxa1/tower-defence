@@ -246,7 +246,9 @@ function menuItems(args: {
       kind: "item" as const,
       id: `build-${type}`,
       label: `Build ${item.name}`,
-      detail: formatNumber(item.cost),
+      detail: snapshot.canAffordBuild[type]
+        ? formatNumber(item.cost)
+        : `Need ${formatNumber(item.cost - snapshot.gold)}`,
       disabled: !snapshot.canAffordBuild[type],
       run: ({ actions }) => actions.buildTowerAt(type, point),
     };

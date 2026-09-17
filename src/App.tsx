@@ -9,6 +9,7 @@ import { SelectionPanel } from "./components/SelectionPanel";
 import { ShopPanel } from "./components/ShopPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { Toast } from "./components/Toast";
+import { WatchObjective } from "./components/WatchObjective";
 import { SignOutControl } from "./auth/SignOutControl";
 import { ARMORY } from "./game/config/armory";
 import type { UiSnapshot } from "./game/types";
@@ -70,6 +71,7 @@ export default function App() {
       ) {
         return;
       }
+      if (target instanceof HTMLElement && target.closest("dialog")) return;
       if (
         (e.key === "h" || e.key === "H") &&
         !e.ctrlKey &&
@@ -134,6 +136,9 @@ export default function App() {
           <div className="hud-ruler">
             <StatsPanel snapshot={snapshot} />
           </div>
+          <div className="watch-objective-slot watch-objective-slot--compact">
+            <WatchObjective snapshot={snapshot} />
+          </div>
           <div className="hud-account">
             <SignOutControl />
           </div>
@@ -157,12 +162,15 @@ export default function App() {
               <span className="sheet-peek-label">{sheetPeekCopy(snapshot)}</span>
             </button>
             <div className="sheet-body" id="sheet-body">
+              <div className="watch-objective-slot watch-objective-slot--desktop">
+                <WatchObjective snapshot={snapshot} />
+              </div>
               <SelectionPanel snapshot={snapshot} actions={actions} />
               <ShopPanel snapshot={snapshot} actions={actions} />
               <ControlsPanel snapshot={snapshot} actions={actions} />
             </div>
           </aside>
-          {snapshot.gameOver ? null : (
+          {snapshot.gameOver || snapshot.campaignComplete ? null : (
             <button
               type="button"
               className={`start-wave-thumb${thumbPause ? " is-wave" : ""}`}
@@ -177,7 +185,11 @@ export default function App() {
             </button>
           )}
           <Toast message={snapshot.toast} />
-          <GameOverOverlay snapshot={snapshot} actions={actions} />
+          <GameOverOverlay
+            snapshot={snapshot}
+            actions={actions}
+            onRecovery={() => setHudHidden(false)}
+          />
         </section>
       </div>
       <QuickMenu

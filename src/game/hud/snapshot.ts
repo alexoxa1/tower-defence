@@ -1,7 +1,7 @@
 import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, TOWER_TYPES } from "../constants";
 import { ARMORY_ORDER } from "../config/armory";
 import { layoutSummaries } from "../config/layouts";
-import { getWaveTitle } from "../config/waves";
+import { getWavePlan, getWaveTitle } from "../config/waves";
 import { towerToSummary } from "../systems/upgrade";
 import { canStartWave } from "../systems/waves";
 import { refreshPreview } from "../sim/preview";
@@ -11,7 +11,20 @@ import type {
   QuickMenuSnapshot,
   TowerType,
   UiSnapshot,
+  WatchPhase,
 } from "../types";
+
+export function deriveWatchPhase(state: GameState): WatchPhase {
+  if (state.gameOver) return "rift-broken";
+  if (state.campaignComplete) return "campaign-complete";
+  if (state.paused) return "paused";
+  if (state.waveActive && state.enemiesLeftToSpawn > 0) {
+    return "wave-arrivals";
+  }
+  if (state.waveActive) return "wave-resolution";
+  if (state.wave === 0) return "hold";
+  return "inter-wave";
+}
 
 export function canAffordBuild(state: GameState): Record<TowerType, boolean> {
   const result = {} as Record<TowerType, boolean>;
@@ -68,12 +81,25 @@ export function buildUiSnapshot(
     paused: state.paused,
     speed: state.speed,
     gameOver: state.gameOver,
+    campaignComplete: state.campaignComplete,
+    phase: deriveWatchPhase(state),
     selectedBuildType: state.selectedBuildType,
     selectedTowers,
     waveName: getWaveTitle(state.wave),
+    nextWaveName:
+      state.wave < CAMPAIGN_WAVES
+        ? getWavePlan(state.wave + 1).name
+        : null,
     waveActive: state.waveActive,
     enemiesCount: state.enemies.length,
     enemiesLeftToSpawn: state.enemiesLeftToSpawn,
+    lastEscape: state.lastEscape ? { ...state.lastEscape } : null,
+    lastClearBonus: state.lastClearBonus,
+    placementFeedback: {
+      visible: state.placementPreview.visible,
+      ok: state.placementPreview.ok,
+      reason: state.placementPreview.reason,
+    },
     toast: extras.toast,
     isDragging: state.drag.kind === "relocating",
     isPanning: extras.isPanning,

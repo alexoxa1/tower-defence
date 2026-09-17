@@ -10,9 +10,8 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
   const lowLives = snapshot.lives <= 5;
   const onRoad = snapshot.enemiesCount;
   const inbound = snapshot.enemiesLeftToSpawn;
-  const pressureFull = `${onRoad} on Road · ${inbound} inbound`;
-  const pressureCompact =
-    inbound > 0 ? `${onRoad} on Road · ${inbound} in` : `${onRoad} on Road`;
+  const pressureFull = `${onRoad} active · ${inbound} in`;
+  const pressureCompact = inbound > 0 ? `${onRoad} active · ${inbound} in` : `${onRoad} active`;
   return (
     <section className="hud-tr" aria-label="Watch stats">
       <div className="stat" aria-label="Gold">
@@ -24,7 +23,10 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className={`stat${lowLives ? " danger" : ""}`} aria-label="Lives">
+      <div
+        className={`stat${lowLives ? " danger" : ""}`}
+        aria-label={lowLives ? "Lives, critical" : "Lives"}
+      >
         <Heart
           size={16}
           weight="bold"
@@ -32,7 +34,9 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           aria-hidden="true"
         />
         <div>
-          <span className="stat-label">Lives</span>
+          <span className="stat-label">
+            Lives{lowLives ? " · Critical" : ""}
+          </span>
           <strong translate="no" aria-live="polite">
             {snapshot.lives}
           </strong>
@@ -47,7 +51,10 @@ export function StatsPanel({ snapshot }: { snapshot: UiSnapshot }) {
           </strong>
         </div>
       </div>
-      <div className="stat" aria-label="Pressure">
+      <div
+        className="stat wave-pressure"
+        aria-label={`${snapshot.enemiesCount} enemies active, ${snapshot.enemiesLeftToSpawn} arrivals remaining`}
+      >
         <Pulse size={16} weight="bold" color="var(--slow)" aria-hidden="true" />
         <div>
           <span className="stat-label">Pressure</span>

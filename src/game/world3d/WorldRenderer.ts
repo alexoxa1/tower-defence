@@ -37,6 +37,8 @@ import {
   warmupWorldTextures,
 } from "./textures";
 
+const DANGER = 0xd4453a;
+
 function makeLabelTexture(text: string, color: string): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -108,6 +110,7 @@ export class WorldRenderer implements BoardHitTest {
   private ghost: THREE.Group;
   private ghostPad: THREE.Mesh;
   private ghostRing: THREE.Mesh;
+  private ghostInvalidMark: THREE.Group;
   private floatSprites: THREE.Sprite[] = [];
   private enemyId = 0;
   private enemyKeys = new WeakMap<object, number>();
@@ -185,8 +188,19 @@ export class WorldRenderer implements BoardHitTest {
     );
     this.ghostRing.rotation.x = -Math.PI / 2;
     this.ghostRing.position.y = 0.06;
+    this.ghostInvalidMark = new THREE.Group();
+    const invalidMaterial = new THREE.MeshBasicMaterial({ color: DANGER });
+    for (const rotation of [-Math.PI / 4, Math.PI / 4]) {
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 0.08, 0.14),
+        invalidMaterial,
+      );
+      bar.position.y = 0.18;
+      bar.rotation.y = rotation;
+      this.ghostInvalidMark.add(bar);
+    }
     this.ghost = new THREE.Group();
-    this.ghost.add(this.ghostPad, this.ghostRing);
+    this.ghost.add(this.ghostPad, this.ghostRing, this.ghostInvalidMark);
     this.ghost.visible = false;
     this.scene.add(this.ghost);
 
@@ -938,11 +952,12 @@ export class WorldRenderer implements BoardHitTest {
       this.ghost.visible = false;
       return;
     }
-    const color = preview.ok ? TEAL : ORANGE;
+    const color = preview.ok ? TEAL : DANGER;
     const padMat = this.ghostPad.material as THREE.MeshStandardMaterial;
     padMat.color.setHex(color);
     padMat.emissive.setHex(color);
     (this.ghostRing.material as THREE.MeshBasicMaterial).color.setHex(color);
+    this.ghostInvalidMark.visible = !preview.ok;
     const range = logicalRadius(preview.range);
     this.ghostRing.scale.set(range, range, 1);
     this.ghost.visible = true;
