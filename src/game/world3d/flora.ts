@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Point } from "../types";
 import { logicalToWorld } from "./coords";
-import { getRockMap, layoutSeed, seeded } from "./textures";
+import { getRockMap, getRockNormalMap, layoutSeed, seeded } from "./textures";
 
 export interface WindUniforms {
   uTime: { value: number };
@@ -17,6 +17,16 @@ const _euler = new THREE.Euler();
 const _color = new THREE.Color();
 
 export type OccupiedFn = (wx: number, wz: number, pad: number) => boolean;
+
+/** Optional kit geometries (vertex-colored, ground at y=0) that replace the procedural shapes. */
+export interface FloraProps {
+  pine?: THREE.BufferGeometry;
+  squat?: THREE.BufferGeometry;
+  broadleaf?: THREE.BufferGeometry;
+  shrub?: THREE.BufferGeometry;
+  grass?: THREE.BufferGeometry;
+  slab?: THREE.BufferGeometry;
+}
 
 function paint(geo: THREE.BufferGeometry, r: number, g: number, b: number): THREE.BufferGeometry {
   const n = geo.attributes.position.count;
@@ -556,6 +566,7 @@ export function buildFlora(
   occupied: OccupiedFn,
   wind: WindUniforms,
   road: readonly Point[],
+  props: FloraProps = {},
 ): THREE.Group {
   const rand = seeded(layoutSeed(layoutId) ^ 90210);
   const root = new THREE.Group();
@@ -569,26 +580,32 @@ export function buildFlora(
   const groves = pickGroveCenters(12, 0.4, 62, 150, road, rand, occupied);
   const treeSites: Site[] = [];
 
-  const pine = makeLayer(pineGeom(), pineMat, 40, true);
+  const pine = makeLayer(props.pine ?? pineGeom(), pineMat, 40, true);
   scatterMixed(40, 0.38, 56, 150, groves, 0.62, 2.7, road, rand, occupied, pine, pineTint, [1.05, 1.4], treeSites);
   pine.name = "pine";
 
-  const squat = makeLayer(squatPineGeom(), pineMat, 28, true);
+  const squat = makeLayer(props.squat ?? squatPineGeom(), pineMat, 28, true);
   scatterMixed(28, 0.38, 54, 140, groves, 0.62, 2.9, road, rand, occupied, squat, pineTint, [1.05, 1.35], treeSites);
   squat.name = "pine-squat";
 
   const leafMat = windMaterial(
-    { roughness: 0.5, metalness: 0.04, emissive: 0xff8414, emissiveIntensity: 0.28 },
+    {
+      color: props.broadleaf ? 0xffa050 : 0xffffff,
+      roughness: 0.5,
+      metalness: 0.04,
+      emissive: 0xff8414,
+      emissiveIntensity: props.broadleaf ? 0.16 : 0.28,
+    },
     wind,
     "leaf",
   );
-  const leaf = makeLayer(broadleafGeom(), leafMat, 36, true);
+  const leaf = makeLayer(props.broadleaf ?? broadleafGeom(), leafMat, 36, true);
   leaf.frustumCulled = false;
   scatterBesidePines(36, 0.28, treeSites, 0.7, 1.65, rand, occupied, leaf, [1.16, 1.28]);
   leaf.name = "broadleaf";
 
   const shrub = makeLayer(
-    shrubGeom(),
+    props.shrub ?? shrubGeom(),
     windMaterial(
       { roughness: 0.55, emissive: 0x7dcea0, emissiveIntensity: 0.18 },
       wind,
@@ -624,7 +641,7 @@ export function buildFlora(
   crystal.name = "crystal";
 
   const grass = makeLayer(
-    grassGeom(),
+    props.grass ?? grassGeom(),
     windMaterial({ roughness: 0.88, side: THREE.DoubleSide }, wind, "grass"),
     300,
     false,
@@ -651,10 +668,12 @@ export function buildFlora(
   grass.name = "grass";
 
   const slabs = makeLayer(
-    slabRockGeom(),
+    props.slab ?? slabRockGeom(),
     new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      map: getRockMap(),
+      map: props.slab ? null : getRockMap(),
+      normalMap: props.slab ? null : getRockNormalMap(),
+      vertexColors: Boolean(props.slab),
       roughness: 0.94,
       metalness: 0.08,
       flatShading: true,

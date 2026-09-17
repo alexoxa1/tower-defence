@@ -332,7 +332,7 @@ export function idleTower(root: THREE.Group, type: TowerType, t: number, flash: 
   if (swirl) swirl.rotation.y = t * 1.35;
 }
 
-function addHpBar(g: THREE.Group, y: number, width = 0.7): void {
+export function addHpBar(g: THREE.Group, y: number, width = 0.7): void {
   const track = new THREE.Mesh(
     new THREE.PlaneGeometry(width, 0.07),
     new THREE.MeshBasicMaterial({ color: 0x1a1210, side: THREE.DoubleSide }),
