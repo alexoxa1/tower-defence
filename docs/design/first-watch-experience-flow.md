@@ -1,10 +1,15 @@
 # First Watch Experience & Flow Specification
 
-**Role:** Game Experience Director, Action Producer, Game UX Flow Architect, and Finish-Gate Reviewer  
-**Status:** Draft proposal for review  
-**Date:** 2026-09-17  
-**Target flow:** Entry, Hold, Waves, Rift Broken, and recovery  
-**Seam impact if approved:** Simulation (`src/game/sim/`, `src/game/systems/`), HUD (`src/components/`, `src/game/hud/`), 3D view (`src/game/world3d/`), and live adapter (`src/game/GameEngine.ts`)  
+**Role:** Game Experience Director, Action Producer, Game UX Flow Architect, and Finish-Gate Reviewer
+
+**Status:** Draft proposal for review
+
+**Date:** 2026-09-17
+
+**Target flow:** Entry, Hold, Waves, Rift Broken, and recovery
+
+**Seam impact if approved:** Simulation (`src/game/sim/`, `src/game/systems/`), HUD (`src/components/`, `src/game/hud/`), 3D view (`src/game/world3d/`), and live adapter (`src/game/GameEngine.ts`)
+
 **Implementation status:** Specification only. No application or Figma changes are authorized.
 
 ## Decision legend
