@@ -3,6 +3,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { DEFAULT_LAYOUT_ID, LOGICAL_HEIGHT, LOGICAL_WIDTH } from "../constants";
 import { getLayout } from "../config/layouts";
 import { getEffectiveStats } from "../config/towerStats";
@@ -10,32 +11,38 @@ import { dragOffset } from "../sim/drag";
 import type { BoardHit, BoardHitTest } from "../sim/boardHit";
 import { nearestIdByScreen, TOWER_PICK_SLOP_PX, UPGRADE_PICK_SLOP_PX } from "../sim/screenPick";
 import type { GameState, Point } from "../types";
+import { KIT_SCALE, WorldAssets } from "./assets";
 import { logicalRadius, logicalToWorld, WORLD_SCALE, worldToLogical } from "./coords";
 import { disposeObject } from "./dispose";
-import { buildFlora } from "./flora";
+import { EffectsLayer } from "./effects";
+import { EnemyView } from "./enemyView";
+import { buildFlora, type FloraProps } from "./flora";
 import { createBoardFog, createEmbers, tickEmbers } from "./life";
 import {
   ORANGE,
   TEAL,
-  idleTower,
   makeChevron,
-  makeEnemy,
   makeJaggedRock,
   makePortal,
-  makeTower,
   parseCssColor,
 } from "./models";
 import {
   disposeWorldTextures,
   getGroundMap,
+  getGroundNormalMap,
+  getGroundRoughnessMap,
   getLavaMap,
+  getLavaNormalMap,
   getRoadMap,
+  getRoadNormalMap,
+  getRoadRoughnessMap,
   layoutSeed,
   seeded,
   setWorldTextureAnisotropy,
   useWorldXZMap,
   warmupWorldTextures,
 } from "./textures";
+import { TowerView } from "./towerView";
 
 const DANGER = 0xd4453a;
 
@@ -102,9 +109,15 @@ export class WorldRenderer implements BoardHitTest {
   private reducedMotion = false;
   private loggedDraw = false;
 
-  private towers = new Map<string, THREE.Group>();
-  private enemies = new Map<number, THREE.Group>();
-  private projectiles: THREE.Mesh[] = [];
+  private assets = new WorldAssets();
+  private seenGeneration = 0;
+  private kitApplied = false;
+  private propsApplied = false;
+  private lastElapsed = 0;
+  private effects = new EffectsLayer();
+  private towers = new Map<string, TowerView>();
+  private enemies = new Map<number, EnemyView>();
+  private dying: EnemyView[] = [];
   private particles: THREE.Mesh[] = [];
   private selectionFx = new Map<string, SelectionFx>();
   private ghost: THREE.Group;
@@ -124,36 +137,47 @@ export class WorldRenderer implements BoardHitTest {
       powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.16;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x14151a);
     this.scene.fog = createBoardFog();
+    // Zero-asset image-based lighting so metal and crystal pick up reflections.
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const room = new RoomEnvironment();
+    this.scene.environment = pmrem.fromScene(room, 0.04).texture;
+    this.scene.environmentIntensity = 0.28;
+    pmrem.dispose();
 
     this.camera = new THREE.OrthographicCamera(-20, 20, 16, -16, 0.1, 320);
     const d = 52;
     this.cameraOffset.set(d, d * 1.08, d);
 
-    this.scene.add(new THREE.HemisphereLight(0xb4bcc8, 0x24262c, 0.7));
-    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.1);
+    this.scene.add(new THREE.HemisphereLight(0xb4bcc8, 0x24262c, 0.42));
+    this.keyLight = new THREE.DirectionalLight(0xffe4c4, 1.25);
     this.keyLight.position.set(18, 30, 12);
     this.keyLight.castShadow = true;
-    this.keyLight.shadow.mapSize.set(1024, 1024);
-    this.keyLight.shadow.camera.left = -30;
-    this.keyLight.shadow.camera.right = 30;
-    this.keyLight.shadow.camera.top = 26;
-    this.keyLight.shadow.camera.bottom = -26;
+    this.keyLight.shadow.mapSize.set(2048, 2048);
+    // Cover the whole 1400x1000 Board (about 81 x 58 world units) from the key light's angle.
+    this.keyLight.shadow.camera.left = -48;
+    this.keyLight.shadow.camera.right = 48;
+    this.keyLight.shadow.camera.top = 40;
+    this.keyLight.shadow.camera.bottom = -40;
     this.keyLight.shadow.camera.near = 4;
-    this.keyLight.shadow.camera.far = 90;
+    this.keyLight.shadow.camera.far = 110;
+    this.keyLight.shadow.bias = -0.0004;
+    this.keyLight.shadow.normalBias = 0.02;
+    this.keyLight.shadow.radius = 2;
     this.scene.add(this.keyLight);
     this.scene.add(this.keyLight.target);
-    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.4);
+    const fill = new THREE.DirectionalLight(0x9ec4d8, 0.32);
     fill.position.set(-14, 18, -10);
     this.scene.add(fill);
-    this.scene.add(new THREE.AmbientLight(0x3a3e46, 0.45));
+    this.scene.add(new THREE.AmbientLight(0x3a3e46, 0.22));
     this.applyCamera();
 
     warmupWorldTextures();
@@ -166,6 +190,10 @@ export class WorldRenderer implements BoardHitTest {
     this.layoutId = DEFAULT_LAYOUT_ID;
     this.embers = createEmbers();
     this.scene.add(this.embers);
+    this.scene.add(this.effects.root);
+    this.assets.load(() => {
+      /* Views poll assets.generation during sync so swaps happen on the render thread. */
+    });
 
     this.ghostPad = new THREE.Mesh(
       new THREE.CylinderGeometry(0.85, 0.95, 0.08, 6),
@@ -207,7 +235,7 @@ export class WorldRenderer implements BoardHitTest {
     const size = new THREE.Vector2(canvas.clientWidth || 800, canvas.clientHeight || 600);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(size, 0.28, 0.2, 0.72);
+    this.bloom = new UnrealBloomPass(size, 0.34, 0.3, 0.86);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
@@ -255,22 +283,31 @@ export class WorldRenderer implements BoardHitTest {
 
   setReducedMotion(on: boolean): void {
     this.reducedMotion = on;
-    this.bloom.strength = on ? 0 : 0.28;
+    this.bloom.strength = on ? 0 : 0.34;
     this.windAmp.value = on ? 0 : 0.12;
     this.embers.visible = !on;
   }
 
   dispose(): void {
-    for (const mesh of this.towers.values()) {
-      this.scene.remove(mesh);
-      disposeObject(mesh);
+    for (const view of this.towers.values()) {
+      this.scene.remove(view.root);
+      view.dispose();
     }
     this.towers.clear();
-    for (const mesh of this.enemies.values()) {
-      this.scene.remove(mesh);
-      disposeObject(mesh);
+    for (const view of this.enemies.values()) {
+      this.scene.remove(view.root);
+      view.dispose();
     }
     this.enemies.clear();
+    for (const view of this.dying) {
+      this.scene.remove(view.root);
+      view.dispose();
+    }
+    this.dying = [];
+    this.scene.remove(this.effects.root);
+    this.effects.dispose();
+    this.assets.dispose();
+    this.rockMaterial?.dispose();
     for (const fx of this.selectionFx.values()) {
       this.scene.remove(fx.ring, fx.chevron);
       disposeObject(fx.ring);
@@ -314,15 +351,15 @@ export class WorldRenderer implements BoardHitTest {
 
   pickTower(clientX: number, clientY: number): string | null {
     this.setPointer(clientX, clientY);
-    const objects = [...this.towers.values()];
+    const objects = [...this.towers.values()].map((view) => view.root);
     if (objects.length === 0) return null;
     const hits = this.raycaster.intersectObjects(objects, true);
     const id = hits[0]?.object.userData.towerId;
     if (typeof id === "string") return id;
     return this.pickNearestScreen(
-      [...this.towers.entries()].map(([towerId, mesh]) => ({
+      [...this.towers.entries()].map(([towerId, view]) => ({
         id: towerId,
-        object: mesh,
+        object: view.root,
       })),
       clientX,
       clientY,
@@ -369,15 +406,22 @@ export class WorldRenderer implements BoardHitTest {
   }
 
   sync(state: GameState): void {
+    const dt = Math.min(0.05, this.clock.getDelta());
     const t = this.clock.getElapsedTime();
     this.windTime.value = t;
-    if (state.layoutId !== this.layoutId) {
+    // Watch time: frozen while paused, scaled by Speed. Drives mixers and impact FX.
+    const simDt = Math.max(0, Math.min(0.1, state.elapsed - this.lastElapsed));
+    this.lastElapsed = state.elapsed;
+
+    const assetsChanged = this.assets.generation !== this.seenGeneration;
+    this.seenGeneration = this.assets.generation;
+    if (state.layoutId !== this.layoutId || this.assetPropsArrived()) {
       this.rebuildRoad(state.road, state.layoutId);
       this.layoutId = state.layoutId;
     }
-    this.syncTowers(state, t);
-    this.syncEnemies(state);
-    this.syncProjectiles(state);
+    this.syncTowers(state, dt, t);
+    this.syncEnemies(state, simDt, t, assetsChanged);
+    this.effects.sync(state, simDt);
     this.syncParticles(state);
     this.syncFloatingTexts(state);
     this.syncGhost(state);
@@ -386,15 +430,29 @@ export class WorldRenderer implements BoardHitTest {
     if (this.reducedMotion) return;
 
     tickEmbers(this.embers, t);
-    const pulse = 0.42 + Math.sin(t * 1.4) * 0.06;
+    const pulse = 0.46 + Math.sin(t * 1.4) * 0.08;
     for (const mat of this.lavaMats) mat.emissiveIntensity = pulse;
 
-    this.scene.traverse((obj) => {
+    this.portalRoot.traverse((obj) => {
       if (obj.name === "flame") {
         const s = 1 + Math.sin(t * 4 + obj.id) * 0.08;
         obj.scale.set(s * 1.15, 1.05 + Math.sin(t * 5) * 0.12, 0.38);
       }
     });
+  }
+
+  /** True once per pack arrival so props and portals rebuild with kit meshes. */
+  private assetPropsArrived(): boolean {
+    let changed = false;
+    if (!this.kitApplied && this.assets.hasKit()) {
+      this.kitApplied = true;
+      changed = true;
+    }
+    if (!this.propsApplied && this.assets.hasProps()) {
+      this.propsApplied = true;
+      changed = true;
+    }
+    return changed;
   }
 
   render(): void {
@@ -558,17 +616,23 @@ export class WorldRenderer implements BoardHitTest {
     }
     geo.computeVertexNormals();
     const groundMap = getGroundMap();
-    groundMap.repeat.set(5, 4);
+    groundMap.repeat.set(7, 5);
+    const groundNormal = getGroundNormalMap();
+    groundNormal.repeat.set(7, 5);
+    const groundRough = getGroundRoughnessMap();
+    groundRough.repeat.set(7, 5);
     const mesh = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+        color: 0x8a8c94,
         map: groundMap,
-        roughness: 0.92,
+        normalMap: groundNormal,
+        normalScale: new THREE.Vector2(0.9, 0.9),
+        roughnessMap: groundRough,
+        roughness: 1,
         metalness: 0.04,
         emissive: 0x222a38,
-        emissiveIntensity: 0.14,
-        flatShading: true,
+        emissiveIntensity: 0.12,
       }),
     );
     mesh.receiveShadow = true;
@@ -625,15 +689,59 @@ export class WorldRenderer implements BoardHitTest {
         rz = (rand() - 0.5) * 82;
       }
       if (this.occupied(rx, rz, 0.6)) continue;
-      const rock = makeJaggedRock(rand);
-      const s = 0.5 + rand() * 0.8;
-      const h = 0.4 + rand() * 1.0;
-      rock.position.set(rx, h * 0.18, rz);
-      rock.scale.set(s, h, s);
-      rock.rotation.set(rand() * 0.28, rand() * Math.PI, rand() * 0.2);
-      this.propRoot.add(rock);
+      const kitRock = this.kitRock(rand);
+      if (kitRock) {
+        const s = 1.2 + rand() * 1.6;
+        kitRock.position.set(rx, -0.04, rz);
+        kitRock.scale.set(s, s * (0.8 + rand() * 0.5), s);
+        kitRock.rotation.set(0, rand() * Math.PI * 2, 0);
+        this.propRoot.add(kitRock);
+      } else {
+        const rock = makeJaggedRock(rand);
+        const s = 0.5 + rand() * 0.8;
+        const h = 0.4 + rand() * 1.0;
+        rock.position.set(rx, h * 0.18, rz);
+        rock.scale.set(s, h, s);
+        rock.rotation.set(rand() * 0.28, rand() * Math.PI, rand() * 0.2);
+        this.propRoot.add(rock);
+      }
       placed += 1;
     }
+  }
+
+  private rockMaterial: THREE.MeshStandardMaterial | null = null;
+
+  /** Nature Kit rock instance with a soot tint, or null before the props load. */
+  private kitRock(rand: () => number): THREE.Mesh | null {
+    const names = ["rock_largeA", "rock_largeB", "rock_tallA", "rock_tallC", "rock_tallH", "stone_largeA", "stone_tallB"];
+    const geo = this.assets.propGeometry(names[Math.floor(rand() * names.length)]);
+    if (!geo) return null;
+    if (!this.rockMaterial) {
+      this.rockMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8c8f99,
+        vertexColors: true,
+        roughness: 0.92,
+        metalness: 0.06,
+        flatShading: true,
+      });
+      this.rockMaterial.userData.shared = true;
+    }
+    const mesh = new THREE.Mesh(geo, this.rockMaterial);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  private floraProps(): FloraProps {
+    const g = (name: string) => this.assets.propGeometry(name) ?? undefined;
+    return {
+      pine: g("tree_pineTallA"),
+      squat: g("tree_pineRoundA"),
+      broadleaf: g("tree_oak_dark"),
+      shrub: g("plant_bushLarge"),
+      grass: g("grass_leafs"),
+      slab: g("rock_largeB"),
+    };
   }
 
   private nearPath(wx: number, wz: number, pad: number): boolean {
@@ -678,6 +786,7 @@ export class WorldRenderer implements BoardHitTest {
       (wx, wz, pad) => this.occupied(wx, wz, pad),
       { uTime: this.windTime, uWind: this.windAmp },
       road,
+      this.floraProps(),
     );
     this.floraRoot.add(flora);
   }
@@ -688,17 +797,21 @@ export class WorldRenderer implements BoardHitTest {
     const stoneMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: getRoadMap(),
-      roughness: 0.9,
-      metalness: 0.14,
-      flatShading: true,
+      normalMap: getRoadNormalMap(),
+      normalScale: new THREE.Vector2(1.1, 1.1),
+      roughnessMap: getRoadRoughnessMap(),
+      roughness: 1,
+      metalness: 0.1,
     });
     useWorldXZMap(stoneMat, 0.28);
     const lavaMat = new THREE.MeshStandardMaterial({
       color: 0x181c24,
       map: getRoadMap(),
+      normalMap: getLavaNormalMap(),
+      normalScale: new THREE.Vector2(0.8, 0.8),
       emissive: 0xd47828,
       emissiveMap: getLavaMap(),
-      emissiveIntensity: 0.42,
+      emissiveIntensity: 0.46,
       roughness: 0.72,
       metalness: 0.06,
     });
@@ -746,11 +859,36 @@ export class WorldRenderer implements BoardHitTest {
     inn.rotation.y = Math.PI / 2;
     out.rotation.y = -Math.PI / 2;
     this.portalRoot.add(inn, out);
+    this.dressPortal(inn, "spawn-round", 1);
+    this.dressPortal(out, "spawn-square", 2);
   }
 
-  private removeTowerMesh(id: string, mesh: THREE.Group): void {
-    this.scene.remove(mesh);
-    disposeObject(mesh);
+  /** Kit pad and crystal shards around a portal once the kit has loaded. */
+  private dressPortal(portal: THREE.Group, pad: string, seed: number): void {
+    const material = this.assets.kitPropMaterial();
+    if (!material) return;
+    const plate = this.assets.kitPart(pad, material);
+    if (plate) {
+      plate.scale.setScalar(KIT_SCALE * 2.6);
+      plate.position.y = 0.02;
+      portal.add(plate);
+    }
+    const rand = seeded(7000 + seed);
+    for (let i = 0; i < 5; i += 1) {
+      const shard = this.assets.kitPart(i % 2 === 0 ? "detail-crystal" : "detail-rocks", material);
+      if (!shard) continue;
+      const a = rand() * Math.PI * 2;
+      const r = 2.2 + rand() * 1.4;
+      shard.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+      shard.rotation.y = rand() * Math.PI * 2;
+      shard.scale.setScalar(KIT_SCALE * (0.9 + rand() * 0.8));
+      portal.add(shard);
+    }
+  }
+
+  private removeTowerView(id: string, view: TowerView): void {
+    this.scene.remove(view.root);
+    view.dispose();
     this.towers.delete(id);
     const fx = this.selectionFx.get(id);
     if (fx) {
@@ -761,20 +899,17 @@ export class WorldRenderer implements BoardHitTest {
     }
   }
 
-  private syncTowers(state: GameState, t: number): void {
+  private syncTowers(state: GameState, dt: number, t: number): void {
     const seen = new Set<string>();
     for (const tower of state.towers) {
       seen.add(tower.id);
-      let mesh = this.towers.get(tower.id);
-      if (!mesh) {
-        mesh = makeTower(tower.type);
-        mesh.userData.towerId = tower.id;
-        mesh.traverse((c) => {
-          c.castShadow = true;
-          c.userData.towerId = tower.id;
-        });
-        this.towers.set(tower.id, mesh);
-        this.scene.add(mesh);
+      let view = this.towers.get(tower.id);
+      if (!view) {
+        view = new TowerView(tower.id, tower.type, tower.level, this.assets);
+        this.towers.set(tower.id, view);
+        this.scene.add(view.root);
+      } else {
+        view.syncModel(tower.level, this.assets);
       }
       const offset = dragOffset(state.drag);
       const moving =
@@ -783,14 +918,11 @@ export class WorldRenderer implements BoardHitTest {
         state.drag.originPositions.has(tower.id);
       const x = moving && offset ? tower.x + offset.x : tower.x;
       const y = moving && offset ? tower.y + offset.y : tower.y;
-      const pos = logicalToWorld(x, y, 0);
-      mesh.position.copy(pos);
-      const aim = mesh.getObjectByName("aim");
-      if (aim) aim.rotation.y = -tower.angle;
-      if (!this.reducedMotion) idleTower(mesh, tower.type, t, tower.flash);
+      view.root.position.copy(logicalToWorld(x, y, 0));
+      view.update(tower, dt, t, this.reducedMotion);
     }
-    for (const [id, mesh] of this.towers) {
-      if (!seen.has(id)) this.removeTowerMesh(id, mesh);
+    for (const [id, view] of this.towers) {
+      if (!seen.has(id)) this.removeTowerView(id, view);
     }
 
     const selected = state.selectedTowerIds;
@@ -841,14 +973,13 @@ export class WorldRenderer implements BoardHitTest {
       const range = logicalRadius(getEffectiveStats(state, tower).range);
       fx.ring.scale.set(range, range, 1);
       fx.ring.position.copy(logicalToWorld(x, y, 0.08));
-      const chevronH =
-        tower.type === "sniper" ? 4.35 : tower.type === "beacon" ? 3.1 : 2.35;
+      const chevronH = this.towers.get(id)?.markerHeight ?? 2.35;
       fx.chevron.position.copy(logicalToWorld(x, y, chevronH));
       fx.chevron.lookAt(this.camera.position);
     }
   }
 
-  private syncEnemies(state: GameState): void {
+  private syncEnemies(state: GameState, simDt: number, t: number, assetsChanged: boolean): void {
     const live = new Set<number>();
     for (const enemy of state.enemies) {
       let key = this.enemyKeys.get(enemy);
@@ -858,69 +989,34 @@ export class WorldRenderer implements BoardHitTest {
         this.enemyKeys.set(enemy, key);
       }
       live.add(key);
-      let mesh = this.enemies.get(key);
-      if (!mesh) {
-        mesh = makeEnemy(enemy.kind);
-        mesh.traverse((c) => {
-          c.castShadow = true;
-        });
-        this.enemies.set(key, mesh);
-        this.scene.add(mesh);
+      let view = this.enemies.get(key);
+      if (!view) {
+        view = new EnemyView(enemy, this.assets);
+        this.enemies.set(key, view);
+        this.scene.add(view.root);
+      } else if (assetsChanged && !view.isRigged) {
+        view.tryRig(this.assets);
       }
-      mesh.position.copy(logicalToWorld(enemy.x, enemy.y, 0));
-      const pulse = enemy.flash > 0.4 ? 1.12 : 1;
-      mesh.scale.setScalar(enemy.scale * pulse);
-      const waypoint =
-        state.road[Math.min(enemy.waypointIndex, state.road.length - 1)] ??
-        state.road[0];
-      mesh.rotation.y = -Math.atan2(waypoint.y - enemy.y, waypoint.x - enemy.x);
-      const hp = mesh.getObjectByName("hp");
-      if (hp) hp.scale.x = Math.max(0.08, enemy.hp / enemy.maxHp);
-      hp?.lookAt(this.camera.position);
-      mesh.getObjectByName("hp-track")?.lookAt(this.camera.position);
-      const body = mesh.children.find((c) => c instanceof THREE.Mesh) as THREE.Mesh | undefined;
-      const mat = body?.material as THREE.MeshStandardMaterial | undefined;
-      if (mat && "emissive" in mat) {
-        mat.emissive.setHex(enemy.slowTimer > 0 ? TEAL : 0x2a1810);
-        mat.emissiveIntensity = enemy.slowTimer > 0 ? 0.55 : 0.22;
+      view.update(state, simDt, this.camera, t, this.reducedMotion);
+    }
+    for (const [key, view] of this.enemies) {
+      if (live.has(key)) continue;
+      this.enemies.delete(key);
+      if (!this.reducedMotion && view.beginRemoval()) {
+        this.dying.push(view);
+      } else {
+        this.scene.remove(view.root);
+        view.dispose();
       }
     }
-    for (const [key, mesh] of this.enemies) {
-      if (!live.has(key)) {
-        this.scene.remove(mesh);
-        disposeObject(mesh);
-        this.enemies.delete(key);
+    for (let i = this.dying.length - 1; i >= 0; i -= 1) {
+      const view = this.dying[i];
+      if (view.updateDying(simDt)) {
+        this.scene.remove(view.root);
+        view.dispose();
+        this.dying.splice(i, 1);
       }
     }
-  }
-
-  private syncProjectiles(state: GameState): void {
-    while (this.projectiles.length < state.projectiles.length) {
-      const ball = new THREE.Mesh(
-        new THREE.SphereGeometry(0.14, 8, 8),
-        new THREE.MeshStandardMaterial({
-          color: 0xffe0a0,
-          emissive: ORANGE,
-          emissiveIntensity: 1.6,
-        }),
-      );
-      this.projectiles.push(ball);
-      this.scene.add(ball);
-    }
-    this.projectiles.forEach((mesh, i) => {
-      const p = state.projectiles[i];
-      if (!p) {
-        mesh.visible = false;
-        return;
-      }
-      mesh.visible = true;
-      const tint = parseCssColor(p.color);
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      mat.color.setHex(tint);
-      mat.emissive.setHex(tint);
-      const height = p.splash > 0 ? 1.55 : 0.95;
-      mesh.position.copy(logicalToWorld(p.x, p.y, height));
-    });
   }
 
   private syncParticles(state: GameState): void {
