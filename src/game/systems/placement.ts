@@ -85,11 +85,13 @@ export function buildTower(
 ): { ok: boolean } {
   const buildType = type ?? state.selectedBuildType;
   if (!buildType) {
+    ports.play("error");
     ports.notify("Pick a tower in the Armory, or drag to pan.");
     return { ok: false };
   }
   const validation = validatePlacement(state, point, buildType);
   if (!validation.ok) {
+    ports.play("error");
     ports.notify(validation.reason);
     return { ok: false };
   }
@@ -134,6 +136,7 @@ export function moveTowers(
 ): { ok: boolean } {
   const validation = validateTowerMove(state, towerPositions);
   if (!validation.ok) {
+    ports.play("error");
     ports.notify(validation.reason);
     return { ok: false };
   }

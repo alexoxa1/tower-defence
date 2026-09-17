@@ -8,6 +8,8 @@ export interface HudCommands {
   selectBuildType: (type: TowerType | null) => void;
   startWave: () => void;
   togglePause: () => void;
+  beginOverlayPause: () => void;
+  endOverlayPause: () => void;
   setSpeed: (speed: GameSpeed) => void;
   resetGame: () => void;
   upgradeTower: (id: string) => void;

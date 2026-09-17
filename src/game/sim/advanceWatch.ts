@@ -11,7 +11,7 @@ export function advanceWatch(
   ports: WatchPorts,
   options?: { frozen?: boolean },
 ): void {
-  if (options?.frozen || state.gameOver) {
+  if (options?.frozen || state.gameOver || state.campaignComplete) {
     tickPresentation(state, dt);
     refreshPreview(state);
     return;
@@ -22,7 +22,11 @@ export function advanceWatch(
   updateWaveSpawner(dt, state);
 
   for (const enemy of state.enemies) {
-    if (enemy.update(dt)) resolveEscape(state, enemy, ports);
+    if (enemy.update(dt) && resolveEscape(state, enemy, ports)) {
+      state.enemies = state.enemies.filter((item) => item.alive);
+      refreshPreview(state);
+      return;
+    }
   }
   for (const tower of state.towers) tower.update(dt, state, ports);
   for (const projectile of state.projectiles) projectile.update(dt, state, ports);

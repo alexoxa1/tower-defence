@@ -57,6 +57,7 @@ export function upgradeTower(
 ): { ok: boolean } {
   const tower = state.towers.find((t) => t.id === towerId);
   if (!tower) {
+    ports.play("error");
     ports.notify("Tower not found.");
     return { ok: false };
   }
@@ -64,6 +65,8 @@ export function upgradeTower(
   const result = applyUpgrade(state, tower);
   if (result.ok) {
     ports.play("upgrade");
+  } else {
+    ports.play("error");
   }
   if (result.message) ports.notify(result.message);
   return { ok: result.ok };
@@ -100,11 +103,13 @@ export function upgradeTowers(
 
   const message =
     upgraded > 0
-      ? `Upgraded ${upgraded} tower${upgraded > 1 ? "s" : ""} for ${money(totalCost)}.`
+      ? `Upgraded ${upgraded} tower${upgraded > 1 ? "s" : ""} for ${money(totalCost)}.${skipped > 0 ? ` ${skipped} skipped.` : ""}`
       : "Could not upgrade selected towers.";
 
   if (upgraded > 0) {
     ports.play("upgrade");
+  } else {
+    ports.play("error");
   }
   ports.notify(message);
   return { upgraded, skipped, totalCost };
@@ -117,6 +122,7 @@ export function sellTower(
 ): { ok: boolean; refund: number } {
   const tower = state.towers.find((t) => t.id === towerId);
   if (!tower) {
+    ports.play("error");
     ports.notify("Tower not found.");
     return { ok: false, refund: 0 };
   }
@@ -150,6 +156,7 @@ export function sellTowers(
     sold += 1;
   }
   if (sold > 0) ports.play("sell");
+  else ports.play("error");
   ports.notify(
     sold > 0
       ? `Sold ${sold} tower${sold > 1 ? "s" : ""} for ${money(totalRefund)}.`

@@ -8,7 +8,8 @@ export type SoundName =
   | "wave"
   | "lose"
   | "life"
-  | "clear";
+  | "clear"
+  | "error";
 
 /** Effect ports for a Watch. State changes stay on GameState. */
 export interface WatchPorts {

@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { CAMPAIGN_WAVES, MAX_TOWER_LEVEL, RELOCATE_THRESHOLD, RELOCATE_THRESHOLD_COARSE, STARTING_GOLD, TOWER_TYPES } from "../constants";
 import { Enemy } from "../entities/Enemy";
+import { Projectile } from "../entities/Projectile";
 import { buildUiSnapshot } from "../hud/snapshot";
 import { createInitialState } from "../state/createInitialState";
 import { advanceWatch } from "./advanceWatch";
 import { createLogicalHitTest } from "./boardHit";
 import { createRecordingPorts, silentPorts } from "./ports";
 import { deriveInteractionMode, refreshPreview } from "./preview";
+import { pauseForOverlay, resumeOverlayPause } from "./pause";
 import { pointerDown, pointerMove, pointerUp } from "./pointer";
 import { applyDamage, resolveEscape } from "../systems/combat";
 import { buildTower, validatePlacement } from "../systems/placement";
-import { canUpgradeTower, towerToSummary } from "../systems/upgrade";
+import {
+  canUpgradeTower,
+  towerToSummary,
+  upgradeTowers,
+} from "../systems/upgrade";
 import { getEffectiveStats } from "../config/towerStats";
 import { getLayout } from "../config/layouts";
 import {
@@ -59,6 +65,16 @@ describe("placement preview", () => {
     expect(state.placementPreview.ok).toBe(false);
     expect(state.placementPreview.reason).toMatch(/road/i);
   });
+
+  it("reports invalid placement with explicit text and error audio", () => {
+    const state = createInitialState();
+    const rec = createRecordingPorts();
+    state.selectedBuildType = "basic";
+
+    expect(buildTower(state, { x: 200, y: 200 }, rec.ports).ok).toBe(false);
+    expect(rec.notes).toContain("Cannot build on the road.");
+    expect(rec.sounds).toContain("error");
+  });
 });
 
 describe("combat", () => {
@@ -88,13 +104,81 @@ describe("combat", () => {
     enemy.alive = false;
 
     resolveEscape(state, enemy, rec.ports);
-    expect(state.lives).toBeLessThanOrEqual(0);
+    expect(state.lives).toBe(0);
     expect(state.gameOver).toBe(true);
+    expect(state.lastEscape).toEqual({
+      enemyKind: "creep",
+      livesCost: 1,
+      remainingLives: 0,
+      wave: 0,
+    });
     expect(rec.sounds.filter((s) => s === "lose")).toHaveLength(1);
     expect(rec.sounds).not.toContain("life");
 
     resolveEscape(state, new Enemy(1, "creep", state.road), rec.ports);
     expect(rec.sounds.filter((s) => s === "lose")).toHaveLength(1);
+  });
+
+  it("stops the tick atomically after the decisive Escape", () => {
+    const state = createInitialState();
+    state.wave = 1;
+    state.waveActive = true;
+    state.enemiesLeftToSpawn = 0;
+    state.lives = 1;
+    const rec = createRecordingPorts();
+    const end = state.road[state.road.length - 1];
+    const fatal = new Enemy(1, "creep", state.road);
+    fatal.waypointIndex = state.road.length - 1;
+    fatal.x = end.x - 1;
+    fatal.y = end.y;
+    fatal.speed = 100;
+    const later = new Enemy(1, "runner", state.road);
+    later.waypointIndex = state.road.length - 1;
+    later.x = end.x - 1;
+    later.y = end.y;
+    later.speed = 100;
+    state.enemies.push(fatal, later);
+    const projectile = new Projectile(
+      later.x,
+      later.y,
+      later,
+      TOWER_TYPES.basic,
+    );
+    state.projectiles.push(projectile);
+    const goldBefore = state.gold;
+
+    advanceWatch(state, 0.1, rec.ports);
+
+    expect(state.gameOver).toBe(true);
+    expect(state.lives).toBe(0);
+    expect(state.lastEscape?.enemyKind).toBe("creep");
+    expect(state.enemies).toEqual([later]);
+    expect(later.alive).toBe(true);
+    expect(projectile.active).toBe(true);
+    expect(state.gold).toBe(goldBefore);
+    expect(state.score).toBe(0);
+    expect(state.lastClearBonus).toBe(0);
+    expect(rec.sounds.filter((sound) => sound === "lose")).toHaveLength(1);
+    expect(rec.sounds).not.toContain("life");
+    expect(rec.sounds).not.toContain("kill");
+  });
+});
+
+describe("overlay pause", () => {
+  it("resumes only a pause owned by the overlay", () => {
+    const state = createInitialState();
+    const owned = pauseForOverlay(state);
+    expect(owned).toBe(true);
+    expect(state.paused).toBe(true);
+
+    resumeOverlayPause(state, owned);
+    expect(state.paused).toBe(false);
+
+    state.paused = true;
+    const playerPauseOwned = pauseForOverlay(state);
+    expect(playerPauseOwned).toBe(false);
+    resumeOverlayPause(state, playerPauseOwned);
+    expect(state.paused).toBe(true);
   });
 });
 
@@ -111,6 +195,8 @@ describe("eligibility", () => {
       reducedMotion: false,
     });
     expect(snap.canStartWave).toBe(true);
+    expect(snap.phase).toBe("hold");
+    expect(snap.nextWaveName).toBe("Rift Drip");
     expect(snap.canAffordBuild.basic).toBe(true);
     expect(snap.canAffordBuild.beacon).toBe(true);
     expect(snap.campaignWaves).toBe(CAMPAIGN_WAVES);
@@ -128,6 +214,7 @@ describe("eligibility", () => {
     });
     expect(snap.canStartWave).toBe(false);
     expect(snap.waveActive).toBe(true);
+    expect(snap.phase).toBe("wave-arrivals");
 
     state.enemiesLeftToSpawn = 0;
     state.enemies.push(new Enemy(1, "creep", state.road));
@@ -141,6 +228,7 @@ describe("eligibility", () => {
     expect(state.waveActive).toBe(true);
     expect(snap.waveActive).toBe(true);
     expect(snap.canStartWave).toBe(false);
+    expect(snap.phase).toBe("wave-resolution");
 
     state.enemies = [];
     checkWaveCleared(state, silentPorts);
@@ -152,6 +240,7 @@ describe("eligibility", () => {
     });
     expect(state.waveActive).toBe(false);
     expect(snap.canStartWave).toBe(true);
+    expect(snap.phase).toBe("inter-wave");
 
     const fresh = createInitialState();
     fresh.selectedBuildType = "basic";
@@ -166,6 +255,54 @@ describe("eligibility", () => {
     expect(maxed.atMaxLevel).toBe(true);
     expect(maxed.canUpgrade).toBe(false);
     expect(canUpgradeTower(tower, 99_999)).toBe(false);
+  });
+});
+
+describe("Campaign completion", () => {
+  it("ends after Wave 20 and never starts Wave 21", () => {
+    const state = createInitialState();
+    const rec = createRecordingPorts();
+    state.wave = CAMPAIGN_WAVES;
+    state.waveActive = true;
+    state.lastRewardedWave = CAMPAIGN_WAVES - 1;
+    state.enemiesLeftToSpawn = 0;
+
+    checkWaveCleared(state, rec.ports);
+
+    expect(state.campaignComplete).toBe(true);
+    expect(state.wave).toBe(CAMPAIGN_WAVES);
+    expect(state.waveActive).toBe(false);
+    expect(state.lastClearBonus).toBe(255);
+    expect(canStartWave(state)).toBe(false);
+    expect(startWave(state, rec.ports).ok).toBe(false);
+    expect(state.wave).toBe(CAMPAIGN_WAVES);
+    expect(rec.notes).toContain("Campaign complete. Start a New Watch.");
+    const snap = buildUiSnapshot(state, {
+      toast: null,
+      muted: false,
+      isPanning: false,
+      reducedMotion: false,
+    });
+    expect(snap.phase).toBe("campaign-complete");
+    expect(snap.nextWaveName).toBeNull();
+  });
+});
+
+describe("linked Tower economy feedback", () => {
+  it("reports partial bulk upgrades and skipped Towers", () => {
+    const state = createInitialState({ startingGold: 1_000 });
+    const rec = createRecordingPorts();
+    state.selectedBuildType = "basic";
+    buildTower(state, { x: 200, y: 80 }, silentPorts);
+    state.selectedBuildType = "cannon";
+    buildTower(state, { x: 280, y: 80 }, silentPorts);
+    state.gold = 200;
+    const ids = state.towers.map((tower) => tower.id);
+
+    const result = upgradeTowers(state, ids, rec.ports);
+
+    expect(result).toEqual({ upgraded: 1, skipped: 1, totalCost: 78 });
+    expect(rec.notes).toContain("Upgraded 1 tower for $78. 1 skipped.");
   });
 });
 
