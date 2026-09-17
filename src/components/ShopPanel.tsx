@@ -1,4 +1,4 @@
-import { Circle, Hand } from "@phosphor-icons/react";
+import { Hand } from "@phosphor-icons/react";
 import { ARMORY, ARMORY_ORDER } from "../game/config/armory";
 import type { HudCommands } from "../game/hud/commands";
 import type { UiSnapshot } from "../game/types";
@@ -28,8 +28,8 @@ export function ShopPanel({
         </span>
         <span className="tower-copy">
           <span className="tower-name">Scout</span>
-          <span className="tower-blurb hint-fine">Drag to pan • No build</span>
-          <span className="tower-blurb hint-coarse">Drag / pinch • No build</span>
+          <span className="tower-blurb hint-fine">Drag to pan · No build</span>
+          <span className="tower-blurb hint-coarse">Drag / pinch · No build</span>
         </span>
       </button>
       {ARMORY_ORDER.map((type) => {
@@ -57,9 +57,8 @@ export function ShopPanel({
               <span className="tower-name">{item.name}</span>
               <span className="tower-blurb">{item.blurb}</span>
             </span>
-            <span className="price" style={{ color: item.swatch }} translate="no">
+            <span className="price" translate="no">
               {formatNumber(item.cost)}
-              <Circle size={11} weight="fill" aria-hidden="true" />
             </span>
           </button>
         );

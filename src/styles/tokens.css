@@ -29,13 +29,11 @@
   --swatch-ward: #e8a54b;
   --swatch-frost: #7dcea0;
 
-  /* Type */
-  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  /* Type — one product stack (Stitch could not share families across screens) */
+  --font-display: "Big Shoulders Display", "Segoe UI", sans-serif;
   --font-label: "Barlow Condensed", "Segoe UI", sans-serif;
-  --font-mono: "Courier Prime", ui-monospace, monospace;
-  --font-auth-display: "Big Shoulders Display", "Segoe UI", sans-serif;
-  --font-auth-mono: "Azeret Mono", ui-monospace, monospace;
-  --font-weight-display: 700;
+  --font-mono: "Azeret Mono", ui-monospace, monospace;
+  --font-weight-display: 800;
   --font-weight-label: 600;
   --font-weight-mono: 700;
   --tracking-display: 0.06em;
@@ -104,32 +102,4 @@ html[data-reduced-motion="true"] {
   --motion: 0ms;
   --plate: #121212;
   --plate-hud: #121212;
-}
-
-/* Legacy aliases: remove after HUD and auth migration */
-:root {
-  --bg: var(--board-fog);
-  --text: var(--ink);
-  --accent: var(--filament);
-  --accent-ink: var(--filament-ink);
-  --teal: var(--slow);
-  --mint: var(--swatch-mortar);
-  --line: var(--hairline);
-  --line-quiet: var(--hairline-subtle);
-  --shadow: var(--shadow-plate);
-  --hud-radius: var(--radius-plate);
-  --sidebar-width: var(--armory-width);
-  --panel: var(--plate);
-  --panel-solid: #121212;
-  --panel-2: var(--plate-hud);
-  --glass-fill: var(--plate);
-  --glass-bg: none;
-  --glass-highlight: transparent;
-  --glass-edge: var(--hairline);
-  --glass-edge-top: var(--hairline);
-  --glass-blur: 0px;
-  --glass-saturate: 100%;
-  --glass-sheen: none;
-  --glass-shadow: none;
-  --glass-radius: var(--radius-plate);
 }

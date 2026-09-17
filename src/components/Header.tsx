@@ -1,5 +1,17 @@
 import { useRef, useState, type MouseEvent } from "react";
-import { Eye, EyeSlash, GearSix, House, Minus, Plus, Question, SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import {
+  Eye,
+  EyeSlash,
+  GearSix,
+  House,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  Question,
+  SpeakerHigh,
+  SpeakerSlash,
+} from "@phosphor-icons/react";
 import type { HudCommands } from "../game/hud/commands";
 import type { LayoutId, UiSnapshot } from "../game/types";
 
@@ -34,8 +46,10 @@ export function Header({
   const [confirmLayout, setConfirmLayout] = useState<LayoutId | null>(null);
 
   const label = statusLabel(snapshot);
+  const verb = statusAction(snapshot);
   const canStart = snapshot.canStartWave && !snapshot.paused;
   const layoutNeedsConfirm = snapshot.wave > 0 || snapshot.towerCount > 0;
+  const idleStart = canStart && !snapshot.waveActive && !snapshot.gameOver;
 
   const onStatus = () => {
     if (snapshot.gameOver) return;
@@ -64,22 +78,30 @@ export function Header({
 
   return (
     <header className="hud-tl">
-      <button
-        type="button"
-        className="status-box"
-        onClick={onStatus}
-        disabled={snapshot.gameOver}
-        aria-label={statusAction(snapshot)}
-      >
-        {label}
-      </button>
+      <div className={`status-bezel${idleStart ? " can-start" : ""}`}>
+        <p className="status-phase">{label}</p>
+        <button
+          type="button"
+          className={`status-box${snapshot.waveActive ? " is-wave" : ""}${snapshot.paused ? " is-paused" : ""}`}
+          onClick={onStatus}
+          disabled={snapshot.gameOver}
+          aria-label={verb}
+        >
+          {snapshot.waveActive ? (
+            <Pause size={14} weight="bold" aria-hidden="true" />
+          ) : (
+            <Play size={14} weight="bold" aria-hidden="true" />
+          )}
+          <span className="status-verb">{verb}</span>
+        </button>
+      </div>
       <button
         type="button"
         className="hud-show-pill"
         aria-label="Show HUD"
         onClick={onToggleHud}
       >
-        <EyeSlash size={15} weight="bold" aria-hidden="true" />
+        <Eye size={15} weight="bold" aria-hidden="true" />
         Show HUD
       </button>
       <div className="hud-tools">
@@ -91,9 +113,9 @@ export function Header({
           onClick={onToggleHud}
         >
           {hudHidden ? (
-            <EyeSlash size={15} weight="bold" aria-hidden="true" />
-          ) : (
             <Eye size={15} weight="bold" aria-hidden="true" />
+          ) : (
+            <EyeSlash size={15} weight="bold" aria-hidden="true" />
           )}
         </button>
         <button

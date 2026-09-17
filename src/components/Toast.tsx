@@ -1,4 +1,4 @@
-import { Flame, Spiral } from "@phosphor-icons/react";
+import { Flame } from "@phosphor-icons/react";
 
 function riftTitle(message: string): string {
   const m = message.toLowerCase();
@@ -29,12 +29,11 @@ export function Toast({ message }: { message: string | null }) {
     >
       {message ? (
         <>
-          <Flame size={22} weight="fill" className="toast-mark" aria-hidden="true" />
+          <Flame size={18} weight="bold" className="toast-mark" aria-hidden="true" />
           <div className="toast-copy">
             <p className="toast-title">{riftTitle(message)}</p>
             <p className="toast-body">{message}</p>
           </div>
-          <Spiral size={28} weight="bold" className="toast-vortex" aria-hidden="true" />
         </>
       ) : null}
     </div>

@@ -44,7 +44,7 @@ function makeLabelTexture(text: string, color: string): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d");
   if (ctx) {
     ctx.clearRect(0, 0, 256, 80);
-    ctx.font = "800 44px Syne, sans-serif";
+    ctx.font = '800 44px "Big Shoulders Display", sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.strokeStyle = "rgba(8, 8, 8, 0.9)";

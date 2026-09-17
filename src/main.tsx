@@ -1,7 +1,3 @@
-import "@fontsource/space-grotesk/600.css";
-import "@fontsource/space-grotesk/700.css";
-import "@fontsource/courier-prime/400.css";
-import "@fontsource/courier-prime/700.css";
 import "@fontsource/barlow-condensed/500.css";
 import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
