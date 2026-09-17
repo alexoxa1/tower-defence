@@ -1,9 +1,20 @@
-import "@fontsource/ibm-plex-mono/500.css";
-import "@fontsource/ibm-plex-mono/600.css";
-import "@fontsource/ibm-plex-mono/700.css";
-import "@fontsource/syne/600.css";
-import "@fontsource/syne/700.css";
-import "@fontsource/syne/800.css";
+import "@fontsource/space-grotesk/600.css";
+import "@fontsource/space-grotesk/700.css";
+import "@fontsource/courier-prime/400.css";
+import "@fontsource/courier-prime/700.css";
+import "@fontsource/barlow-condensed/500.css";
+import "@fontsource/barlow-condensed/600.css";
+import "@fontsource/barlow-condensed/700.css";
+import "@fontsource/barlow-condensed/800.css";
+import "@fontsource/azeret-mono/400.css";
+import "@fontsource/azeret-mono/500.css";
+import "@fontsource/azeret-mono/600.css";
+import "@fontsource/azeret-mono/700.css";
+/* Package exports `./*` → `./*.css`; the .css suffix would resolve as 800.css.css. */
+// @ts-expect-error no weight subpath types in this fontsource package
+import "@fontsource/big-shoulders-display/800";
+// @ts-expect-error no weight subpath types in this fontsource package
+import "@fontsource/big-shoulders-display/900";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";

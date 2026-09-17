@@ -10,10 +10,6 @@ import { StatsPanel } from "./components/StatsPanel";
 import { Toast } from "./components/Toast";
 import { SignOutControl } from "./auth/SignOutControl";
 import { useGameEngine } from "./hooks/useGameEngine";
-import "@fontsource/syne/700.css";
-import "@fontsource/syne/800.css";
-import "@fontsource/ibm-plex-mono/600.css";
-import "@fontsource/ibm-plex-mono/700.css";
 import "./styles/tokens.css";
 import "./styles/app.css";
 

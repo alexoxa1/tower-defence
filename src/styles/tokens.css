@@ -1,43 +1,135 @@
 :root {
   color-scheme: dark;
-  --bg: #080808;
-  --ink: #101010;
-  --panel: rgba(14, 14, 14, 0.78);
-  --panel-solid: #121212;
-  --panel-2: rgba(18, 18, 18, 0.88);
-  --text: #f3f1ec;
-  --muted: #8b8680;
-  --accent: #ff6a1a;
-  --accent-ink: #140800;
-  --teal: #2ee6c5;
-  --mint: #2ee6c5;
-  --danger: #e05555;
-  --line: rgba(255, 106, 26, 0.32);
-  --line-quiet: rgba(243, 241, 236, 0.1);
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  --font-display: Syne, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --hud-radius: 2px;
-  --sidebar-width: 320px;
+
+  /* Colour roles — Filament Plate (Stitch auth + HUD mapped) */
+  --soot: #16140f;
+  --soot-deep: #100e09;
+  --surface: #15130e;
+  --board-fog: #14151a;
+  --ink: #f2ece0;
+  --ink-hud: #e8e2d9;
+  --muted: #9a9386;
+  --filament: #f0b429;
+  --filament-ink: #1a1404;
+  --filament-bright: #fabd32;
+  --danger: #d4453a;
+  --slow: #7dcea0;
+  --hairline: #3d3930;
+  --hairline-subtle: #2b2720;
+  --plate: rgba(22, 20, 15, 0.92);
+  --plate-hud: rgba(16, 14, 9, 0.9);
+  --overlay-auth: rgba(14, 13, 10, 0.4);
+  --overlay-rift: rgba(16, 14, 9, 0.3);
+  --focus-ring: var(--filament);
+
+  /* Tower swatches — 3D body hexes (do not use Stitch Armory drift) */
+  --swatch-hex: #ff6a1a;
+  --swatch-mortar: #2ee6c5;
+  --swatch-rail: #d8fff6;
+  --swatch-ward: #e8a54b;
+  --swatch-frost: #7dcea0;
+
+  /* Type */
+  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-label: "Barlow Condensed", "Segoe UI", sans-serif;
+  --font-mono: "Courier Prime", ui-monospace, monospace;
+  --font-auth-display: "Big Shoulders Display", "Segoe UI", sans-serif;
+  --font-auth-mono: "Azeret Mono", ui-monospace, monospace;
+  --font-weight-display: 700;
+  --font-weight-label: 600;
+  --font-weight-mono: 700;
+  --tracking-display: 0.06em;
+  --tracking-label: 0.12em;
+  --tracking-kicker: 0.22em;
+  --tracking-wordmark: 0.28em;
+
+  /* Spacing (4px grid, Stitch space-xs … space-xl) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+  --safe-inset: max(12px, env(safe-area-inset-bottom, 0px));
+
+  /* Radius + hairline */
+  --radius-plate: 2px;
+  --hairline-w: 1px;
+
+  /* Control sizes (1440 desktop / 390 phone) */
+  --ruler-h: 40px;
+  --bezel-width: 140px;
+  --bezel-verb-h: 28px;
+  --spine-size: 44px;
+  --spine-btn-h: 34px;
+  --armory-width: 220px;
+  --armory-row-h: 44px;
+  --selected-width: 240px;
+  --speed-tick-h: 24px;
+  --start-wave-h: 28px;
+  --start-wave-h-touch: 56px;
+  --sheet-peek-h: 56px;
   --touch-min: 44px;
-  --glass-fill: rgba(12, 11, 14, 0.42);
-  --glass-bg: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(18, 16, 20, 0.38) 38%,
-    rgba(8, 8, 10, 0.62) 100%
-  );
-  --glass-highlight: rgba(255, 255, 255, 0.34);
-  --glass-edge: rgba(255, 255, 255, 0.14);
-  --glass-edge-top: rgba(255, 255, 255, 0.42);
-  --glass-blur: 16px;
-  --glass-saturate: 160%;
-  --glass-sheen: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.04) 28%,
-    transparent 52%
-  );
-  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-  --glass-radius: 10px;
+  --auth-plate-width: 400px;
+  --auth-field-h: 42px;
+  --auth-submit-h: 44px;
+  --dialog-width: 520px;
+
+  /* Elevation — hairline first; auth plate may use --shadow-plate */
+  --shadow-plate: 0 16px 36px rgba(0, 0, 0, 0.75);
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.6);
+
+  /* Z */
+  --z-board: 0;
+  --z-hud: 30;
+  --z-ruler: 40;
+  --z-toast: 40;
+  --z-dialog: 50;
+  --z-menu: 60;
+
+  /* Motion */
+  --motion: 120ms;
+  --motion-nudge: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0ms;
+    --plate: #121212;
+    --plate-hud: #121212;
+  }
+}
+
+html[data-reduced-motion="true"] {
+  --motion: 0ms;
+  --plate: #121212;
+  --plate-hud: #121212;
+}
+
+/* Legacy aliases: remove after HUD and auth migration */
+:root {
+  --bg: var(--board-fog);
+  --text: var(--ink);
+  --accent: var(--filament);
+  --accent-ink: var(--filament-ink);
+  --teal: var(--slow);
+  --mint: var(--swatch-mortar);
+  --line: var(--hairline);
+  --line-quiet: var(--hairline-subtle);
+  --shadow: var(--shadow-plate);
+  --hud-radius: var(--radius-plate);
+  --sidebar-width: var(--armory-width);
+  --panel: var(--plate);
+  --panel-solid: #121212;
+  --panel-2: var(--plate-hud);
+  --glass-fill: var(--plate);
+  --glass-bg: none;
+  --glass-highlight: transparent;
+  --glass-edge: var(--hairline);
+  --glass-edge-top: var(--hairline);
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+  --glass-sheen: none;
+  --glass-shadow: none;
+  --glass-radius: var(--radius-plate);
 }
