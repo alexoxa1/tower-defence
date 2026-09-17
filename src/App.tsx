@@ -54,6 +54,8 @@ export default function App() {
     }
     if (selectionKey && selectionKey !== prevSelectionKey.current) {
       setSheetExpanded(true);
+    } else if (!selectionKey && prevSelectionKey.current) {
+      setSheetExpanded(false);
     }
     prevSelectionKey.current = selectionKey;
   }, [hudHidden, selectionKey]);
@@ -155,9 +157,9 @@ export default function App() {
               <span className="sheet-peek-label">{sheetPeekCopy(snapshot)}</span>
             </button>
             <div className="sheet-body" id="sheet-body">
+              <SelectionPanel snapshot={snapshot} actions={actions} />
               <ShopPanel snapshot={snapshot} actions={actions} />
               <ControlsPanel snapshot={snapshot} actions={actions} />
-              <SelectionPanel snapshot={snapshot} actions={actions} />
             </div>
           </aside>
           {snapshot.gameOver ? null : (

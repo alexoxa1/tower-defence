@@ -1156,7 +1156,7 @@ button.action:focus-visible,
     top: auto;
     right: auto;
     left: max(12px, env(safe-area-inset-left, 0px));
-    bottom: calc(var(--sheet-peek-h) + max(12px, env(safe-area-inset-bottom, 0px)) + 8px);
+    bottom: calc(var(--sheet-h) + 12px);
     height: auto;
     z-index: var(--z-dialog);
     padding: 0;
@@ -1238,23 +1238,37 @@ button.action:focus-visible,
     border-left: var(--hairline-w) solid var(--hairline);
   }
 
+  .app {
+    --sheet-h: calc(var(--sheet-peek-h) + max(12px, env(safe-area-inset-bottom, 0px)));
+  }
+
+  .app.is-sheet-expanded {
+    --sheet-h: min(62svh, 560px);
+  }
+
   .ui-panel {
     top: auto;
     left: 0;
     right: 0;
     bottom: 0;
-    width: auto;
-    height: calc(var(--sheet-peek-h) + max(12px, env(safe-area-inset-bottom, 0px)));
+    width: 100%;
+    height: var(--sheet-h);
+    max-height: var(--sheet-h);
     border-left: 0;
     border-top: var(--hairline-w) solid var(--hairline);
-    z-index: var(--z-dialog);
-    box-shadow: var(--shadow-sheet);
-    background: var(--soot);
     overflow: hidden;
   }
 
-  .app.is-sheet-expanded .ui-panel {
-    height: calc(min(42dvh, 380px) + max(12px, env(safe-area-inset-bottom, 0px)));
+  .app.is-sheet-expanded .ui-panel::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 12px;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(to top, var(--soot-deep), transparent);
   }
 
   .sheet-peek {
@@ -1307,9 +1321,26 @@ button.action:focus-visible,
 
   .app.is-sheet-expanded .sheet-body {
     display: flex;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app.is-sheet-expanded .sheet-body > * {
+    flex-shrink: 0;
+  }
+
+  .armory {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .speed-panel {
+    margin-top: 0;
+    flex: 0 0 auto;
   }
 
   .selected-panel {
@@ -1318,6 +1349,9 @@ button.action:focus-visible,
     right: auto;
     bottom: auto;
     max-height: none;
+    min-height: auto;
+    overflow: visible;
+    flex: 0 0 auto;
     margin: var(--space-2);
   }
 
@@ -1329,7 +1363,7 @@ button.action:focus-visible,
     display: inline-flex;
     position: absolute;
     right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: calc(var(--sheet-peek-h) + max(12px, env(safe-area-inset-bottom, 0px)) + 8px);
+    bottom: calc(var(--sheet-h) + 12px);
     z-index: var(--z-dialog);
     height: var(--start-wave-h-touch);
     min-height: var(--start-wave-h-touch);
@@ -1362,7 +1396,7 @@ button.action:focus-visible,
 
   .toast {
     left: max(12px, env(safe-area-inset-left, 0px));
-    bottom: calc(var(--sheet-peek-h) + var(--start-wave-h-touch) + max(12px, env(safe-area-inset-bottom, 0px)) + 16px);
+    bottom: calc(var(--sheet-h) + var(--start-wave-h-touch) + 24px);
     max-width: calc(100% - 24px);
   }
 
