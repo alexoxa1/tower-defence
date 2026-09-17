@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../game/state/createInitialState";
@@ -57,7 +58,7 @@ describe("first Watch HUD flow", () => {
     startWave(state, silentPorts);
     updateWaveSpawner(0, state);
     const markup = renderToStaticMarkup(
-      <StatsPanel snapshot={snapshot(state)} />,
+      createElement(StatsPanel, { snapshot: snapshot(state) }),
     );
 
     expect(markup).toContain("Pressure");
@@ -73,11 +74,11 @@ describe("first Watch HUD flow", () => {
     resolveEscape(state, colossus, silentPorts);
     const snap = snapshot(state);
     const markup = renderToStaticMarkup(
-      <GameOverOverlay
-        snapshot={snap}
-        actions={null}
-        onRecovery={() => {}}
-      />,
+      createElement(GameOverOverlay, {
+        snapshot: snap,
+        actions: null,
+        onRecovery: () => {},
+      }),
     );
 
     expect(escapeCauseText(snap)).toBe(
@@ -95,11 +96,11 @@ describe("first Watch HUD flow", () => {
     state.campaignComplete = true;
     const snap = snapshot(state);
     const markup = renderToStaticMarkup(
-      <GameOverOverlay
-        snapshot={snap}
-        actions={null}
-        onRecovery={() => {}}
-      />,
+      createElement(GameOverOverlay, {
+        snapshot: snap,
+        actions: null,
+        onRecovery: () => {},
+      }),
     );
 
     expect(statusContent(snap)).toEqual({
