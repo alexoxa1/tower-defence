@@ -74,7 +74,7 @@ This specification covers the full first-Watch journey and its feedback architec
 ### 2.1 Repository evidence
 
 | Area | Current evidence | Experience consequence |
-|---|---|---|
+| --- | --- | --- |
 | Domain | `CONTEXT.md` defines Watch, Board, Road, In, Out, Citadel, Armory, Tower, Scout, Wave, Campaign, Hold, Rift Broken, Gold, Lives, Reward, Clear bonus, Spent, Refund, and Score. | All player-facing language in this specification uses those terms. |
 | Architecture | `docs/ARCHITECTURE.md` and ADRs 0001–0003 keep rules in the headless simulation, HUD behind `UiSnapshot` and `HudCommands`, and Three.js as a view. | Future work must preserve seam ownership. |
 | Entry | `AuthGate` in `src/auth/AuthGate.tsx` requires configured Supabase and an authenticated session, except for development `?skipAuth`. `LoginScreen` exposes email/password entry. | Production players cannot reach a first Watch while signed out. |
@@ -121,7 +121,7 @@ These values are facts, not recommendations:
 ### 3.1 Intended first-Watch journey
 
 | Moment | Player question | Required answer | Recommended feedback |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Entry | “Can I play now?” | Reach the Board without an account dependency unless product policy explicitly replaces ADR 0004. | One primary “Enter the Watch” path; sign-in is secondary if optional play is approved. |
 | Hold orientation | “What am I defending?” | Enemies travel from In to Out; Lives represent the Citadel. | In/Out labels, Lives emphasis, one short in-context objective. |
 | First choice | “What can I do?” | Pick any affordable Tower in the Armory. | Armory remains visible; each choice retains role and Gold cost. |
@@ -135,7 +135,7 @@ These values are facts, not recommendations:
 
 ### 3.2 Micro loop: seconds
 
-**Current loop**
+#### 3.2.1 Current loop
 
 1. Enemy enters Tower Range.
 2. `Tower.findTarget` selects the furthest-progressed live enemy.
@@ -145,7 +145,7 @@ These values are facts, not recommendations:
 6. Kill pays Reward, increments Combo, Score, and Kills, then emits floating Gold and Combo text.
 7. If the enemy reaches Out first, Escape spends Lives, clears Combo, shakes the view, and emits floating life loss.
 
-**Proposal**
+#### 3.2.2 Proposed feedback
 
 Retain local FX. Add a stable, non-color-only channel for:
 
@@ -167,14 +167,14 @@ Retain local FX. Add a stable, non-color-only channel for:
 
 ### 3.4 Meta loop: hours and days
 
-**Current**
+#### 3.4.1 Current
 
 - All three Layouts are available.
 - Score and highest Wave exist only in the current in-memory Watch.
 - Wave plans continue after Wave 20.
 - There are no unlocks or durable records.
 
-**Proposal**
+#### 3.4.2 Proposal
 
 - Treat Layout mastery, Campaign completion, and personal Score improvement as the initial meta loop.
 - Do not invent unlocks for this flow.
@@ -343,7 +343,7 @@ sequenceDiagram
 ### 4.4 State transition contract
 
 | Source | From | Event or input | Guard | Action | Feedback | Failure or edge behavior |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | Current | Page load | Auth gate evaluates | Development `skipAuth`, or configured Supabase plus session | Mount `App` only after gate | Splash, configuration message, or login | Production has no signed-out Board route. |
 | Current | Fresh state | Engine construction | Canvas exists | Create 500 Gold, 20 Lives, Wave 0, Scout | Camera-control toast | No first-task instruction. |
 | Current | Hold | Select Armory Tower | Button is affordable | Set `selectedBuildType`; clear Tower selection | Selected card and placement ghost | Unaffordable buttons are disabled and cannot explain deficit. |
@@ -371,7 +371,7 @@ sequenceDiagram
 ### 5.1 Current controls
 
 | Modality | Intent | Current input | System response | Current guard or error |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Mouse | Select Tower type | Click Armory card | Enter build interaction mode | Card disabled when Gold is insufficient. |
 | Mouse | Preview placement | Hover Board in build mode | Ghost and Range follow logical point | Legal status is teal; illegal is orange. |
 | Mouse | Place Tower | Click empty ground without moving beyond 4 screen pixels | Validate and build | Toast on invalid commit. |
@@ -411,7 +411,7 @@ sequenceDiagram
 ## 6. Interaction and feedback standards
 
 | Event | Primary visual | Stable HUD | Audio | Accessible output | Proposal status |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Tower selected | Armory selection state and ghost | Tower name, role, cost | None required | `aria-pressed` and selected text | Current |
 | Legal point | Ghost, Range, affirmative shape | “Open ground” or no-error helper | None required | Text status on change, not every pointer pixel | Proposal |
 | Illegal point | Crossed or segmented ghost plus danger color | Exact reason: Board, Gold, Road, or spacing | Short error cue | Polite status with deduplication | Proposal |
@@ -430,7 +430,7 @@ No critical state may rely on hue alone. Legal and illegal placement need differ
 ### 7.1 Zone map
 
 | Priority | Zone | Current content | Proposed content | Rationale |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | P1 | Top-left phase command | `HOLD`, `WAVE`, `PAUSED`, `NEXT`, or `RIFT` status button | Explicit action plus phase: “Start Wave 1,” “Pause Wave,” “Resume,” “Start Next Wave” | First required action must be visible. |
 | P1 | Top-right combat status | Gold, Lives, current Wave name/index, Score | Lives, Gold, current Wave name, enemies active, arrivals remaining, low-Lives state | Player needs threat and resources during combat. |
 | P1 | Near Out or status cluster | No stable Escape history | Last Escape Lives delta for a short but recoverable duration | Connect Out to Citadel loss. |
@@ -475,7 +475,7 @@ flowchart LR
 ### 8.2 Source, pool, converter, and sink contract
 
 | Type | Current element | Rule | First-Watch communication need |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Source | Starting Gold | 500 on every fresh Watch | Show as initial planning budget. |
 | Source | Reward | Paid only on kill; scales by enemy kind and Wave | Tie floating `+Gold` to Gold counter movement. |
 | Source | Clear bonus | Paid once when active Wave has no enemies or arrivals and Rift is not Broken | Show the amount and next-Wave transition. |
@@ -554,7 +554,7 @@ Dismiss each hint when its state condition is satisfied. Never require the playe
 ### 10.2 Gaps and requirements
 
 | Gap | Requirement before finish gate |
-|---|---|
+| --- | --- |
 | Keyboard cannot place or relocate a Tower on the Board. | Approve and test a keyboard Board-placement model, or explicitly document scoped accessibility and its alternative. |
 | Ghost legality is color-only and uses orange rather than danger red for invalid state. | Add shape/pattern and text reason. Validate against `DESIGN.md`. |
 | Dynamic glass backgrounds complicate contrast assumptions. | Measure WCAG contrast in default, compact, reduced-transparency, selected, disabled, danger, and focus states. |
@@ -626,7 +626,7 @@ The summary should include:
 ### 11.4 Reset policy to approve
 
 | Value | Current reset behavior | Recommended explicit policy |
-|---|---|---|
+| --- | --- | --- |
 | Layout | Preserved by `resetGame` | Preserve for primary retry. |
 | Gold, Lives, Wave, Score, Kills, Towers | Reset | Reset. |
 | Speed | Resets to 1x through fresh state | Preserve or reset only after H-07 testing; current fact must be labeled. |
@@ -639,7 +639,7 @@ The summary should include:
 ## 12. Friction audit and prioritized recommendations
 
 | Priority | Friction | Current evidence | Player risk | Recommendation | Owner if approved |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | P0 | Entry policy contradicts architecture direction. | `AuthGate` mandates Supabase; ADR 0004 says signed-out play and later Clerk. | First Watch can be blocked by account/configuration rather than game comprehension. | Decide entry policy before Figma. Prefer signed-out primary play unless ADR is replaced. | App/auth navigation, outside simulation |
 | P0 | Terminal state is not atomic within a tick. | `advanceWatch` checks `gameOver` only before the tick; `resolveEscape` can set it mid-loop. | Negative Lives and post-Rift Rewards can make the result inconsistent. | Latch Rift Broken, clamp Lives, and stop further rule updates that tick. | `src/game/sim/`, `src/game/systems/combat.ts` |
 | P0 | Campaign has no completion framing. | Wave plans continue after 20; HUD denominator stays 20. | Player cannot tell whether 20/20 is success or merely another Wave. | Approve a non-terminal Campaign milestone or a terminal success policy. Fix post-20 display semantics. | Wave system and HUD snapshot |
@@ -684,7 +684,7 @@ Do not include pointer coordinates, full Road geometry, account secrets, or enti
 ### 13.2 Hypothesis table
 
 | ID | Hypothesis and proposed parameter | Target metric | Falsification threshold | Decision if falsified |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | H-01 | State-driven Hold guidance plus visible “Start Wave” CTA lets a new player build within 45 seconds and start Wave 1 within 75 seconds. | At least 85% of first-time participants build by 45 seconds; at least 80% start by 75 seconds without opening Help. | Fewer than 70% build by 45 seconds, or fewer than 65% start by 75 seconds. | Revise hierarchy and copy before adding more tutorial steps. |
 | H-02 | A one-time no-Tower confirmation reduces accidental undefended starts below 5% without materially delaying deliberate starts. | Undefended starts at most 5%; median Hold-to-start increases by at most 10 seconds against control. | Hold abandonment rises by at least 5 percentage points, or 90th percentile Hold time exceeds 120 seconds. | Remove confirmation and strengthen passive guidance instead. |
 | H-03 | Persistent placement reason plus non-color ghost status enables self-correction within 2 seconds. | At least 90% of invalid previews move to a legal point within 2 seconds; repeated commits for the same reason stay below 10%. | Self-correction below 75% or repeated same-reason commits above 20%. | Rework location and wording; do not intensify animation. |
@@ -709,7 +709,7 @@ Do not include pointer coordinates, full Road geometry, account secrets, or enti
 ## 14. Edge cases
 
 | Case | Current behavior | Required or proposed handling |
-|---|---|---|
+| --- | --- | --- |
 | Supabase missing | Configuration screen blocks Board. | Resolve entry policy; never present configuration as game onboarding. |
 | Sign-out during active Watch | App unmounts after session change; in-memory Watch is lost. | Warn if mandatory auth remains, or make account optional and separate from live Watch. |
 | Refresh or remount | Fresh Watch. | State loss must be explicit until persistence exists. |
