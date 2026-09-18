@@ -284,6 +284,7 @@ function scatterMixed(
   tint: (color: THREE.Color, rand: () => number) => void,
   scaleRange: [number, number],
   intoSites?: Site[],
+  yMul = 1,
 ): void {
   const groveTarget = Math.round(count * groveShare);
   let n = 0;
@@ -315,7 +316,7 @@ function scatterMixed(
       wx,
       wz,
       s,
-      s,
+      s * yMul,
       (rand() - 0.5) * 0.08,
       rand() * Math.PI * 2,
       tint,
@@ -539,12 +540,9 @@ function scatterGroves(
 }
 
 function pineTint(color: THREE.Color, rand: () => number): void {
-  const teal = rand();
-  color.setRGB(
-    0.56 + (1 - teal) * 0.16,
-    0.66 + teal * 0.1,
-    0.46 + teal * 0.24,
-  );
+  const shade = 0.9 + rand() * 0.14;
+  const cool = rand() * 0.08;
+  color.setRGB(shade * (0.94 - cool), shade, shade * (0.9 + cool));
 }
 
 function makeLayer(
@@ -573,7 +571,7 @@ export function buildFlora(
   root.name = "flora";
 
   const pineMat = windMaterial(
-    { roughness: 0.88, emissive: 0x7dcea0, emissiveIntensity: 0.08 },
+    { roughness: 0.84, emissive: 0x1a2a22, emissiveIntensity: 0.04 },
     wind,
     "pine",
   );
@@ -581,43 +579,43 @@ export function buildFlora(
   const treeSites: Site[] = [];
 
   const pine = makeLayer(props.pine ?? pineGeom(), pineMat, 40, true);
-  scatterMixed(40, 0.38, 56, 150, groves, 0.62, 2.7, road, rand, occupied, pine, pineTint, [1.05, 1.4], treeSites);
+  scatterMixed(40, 0.48, 56, 150, groves, 0.58, 2.8, road, rand, occupied, pine, pineTint, [1.12, 1.48], treeSites, 1.28);
   pine.name = "pine";
 
-  const squat = makeLayer(props.squat ?? squatPineGeom(), pineMat, 28, true);
-  scatterMixed(28, 0.38, 54, 140, groves, 0.62, 2.9, road, rand, occupied, squat, pineTint, [1.05, 1.35], treeSites);
+  const squat = makeLayer(props.squat ?? squatPineGeom(), pineMat, 24, true);
+  scatterMixed(24, 0.44, 54, 140, groves, 0.55, 2.9, road, rand, occupied, squat, pineTint, [1.05, 1.32], treeSites);
   squat.name = "pine-squat";
 
   const leafMat = windMaterial(
     {
-      color: props.broadleaf ? 0xffa050 : 0xffffff,
-      roughness: 0.5,
-      metalness: 0.04,
-      emissive: 0xff8414,
-      emissiveIntensity: props.broadleaf ? 0.16 : 0.28,
+      color: 0xffffff,
+      roughness: 0.62,
+      metalness: 0.03,
+      emissive: props.broadleaf ? 0x1a2e22 : 0xff8414,
+      emissiveIntensity: props.broadleaf ? 0.05 : 0.22,
     },
     wind,
     "leaf",
   );
-  const leaf = makeLayer(props.broadleaf ?? broadleafGeom(), leafMat, 36, true);
+  const leaf = makeLayer(props.broadleaf ?? broadleafGeom(), leafMat, 16, true);
   leaf.frustumCulled = false;
-  scatterBesidePines(36, 0.28, treeSites, 0.7, 1.65, rand, occupied, leaf, [1.16, 1.28]);
+  scatterBesidePines(16, 0.4, treeSites, 1.8, 3.4, rand, occupied, leaf, [0.95, 1.18]);
   leaf.name = "broadleaf";
 
   const shrub = makeLayer(
     props.shrub ?? shrubGeom(),
     windMaterial(
-      { roughness: 0.55, emissive: 0x7dcea0, emissiveIntensity: 0.18 },
+      { roughness: 0.7, emissive: 0x143028, emissiveIntensity: 0.06 },
       wind,
       "shrub",
     ),
-    64,
+    32,
     false,
   );
-  scatterMixed(64, 0.22, 50, 130, groves, 0.5, 3.2, road, rand, occupied, shrub, (c, r) => {
+  scatterMixed(32, 0.24, 50, 130, groves, 0.45, 3.0, road, rand, occupied, shrub, (c, r) => {
     const t = r();
-    c.setRGB(0.6 + t * 0.1, 0.74 + t * 0.08, 0.64 + t * 0.08);
-  }, [1.1, 1.6], treeSites);
+    c.setRGB(0.88 + t * 0.1, 0.94 + t * 0.06, 0.86 + t * 0.08);
+  }, [0.5, 0.78], treeSites);
   shrub.name = "shrub";
 
   const crystal = makeLayer(
@@ -643,27 +641,27 @@ export function buildFlora(
   const grass = makeLayer(
     props.grass ?? grassGeom(),
     windMaterial({ roughness: 0.88, side: THREE.DoubleSide }, wind, "grass"),
-    300,
+    96,
     false,
   );
   scatterAroundSites(
-    300,
-    0.06,
+    96,
+    0.08,
     treeSites,
-    0.35,
-    1.7,
+    0.5,
+    2.2,
     50,
     88,
-    0.42,
+    0.5,
     road,
     rand,
     occupied,
     grass,
     (c, r) => {
       const t = r();
-      c.setRGB(0.66 + t * 0.1, 0.74 + t * 0.08, 0.66 + t * 0.08);
+      c.setRGB(0.78 + t * 0.12, 0.86 + t * 0.08, 0.7 + t * 0.1);
     },
-    [1.2, 1.8],
+    [0.42, 0.68],
   );
   grass.name = "grass";
 

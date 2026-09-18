@@ -736,10 +736,9 @@ export class WorldRenderer implements BoardHitTest {
     const g = (name: string) => this.assets.propGeometry(name) ?? undefined;
     return {
       pine: g("tree_pineTallA"),
-      squat: g("tree_pineRoundA"),
+      squat: g("tree_pineDefaultA"),
       broadleaf: g("tree_oak_dark"),
       shrub: g("plant_bushLarge"),
-      grass: g("grass_leafs"),
       slab: g("rock_largeB"),
     };
   }

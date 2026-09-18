@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { EnemyKind, TowerType } from "../types";
 import { hexToRgb, paletteAccentMask, recolorPalette, TOWER_ACCENT } from "./palette";
 
@@ -264,24 +265,36 @@ export class WorldAssets {
     const scene = gltf.scene;
     scene.updateMatrixWorld(true);
     for (const root of scene.children) {
-      let found: THREE.Mesh | null = null;
+      const parts: THREE.BufferGeometry[] = [];
       root.traverse((child) => {
         const mesh = child as THREE.Mesh;
-        if (mesh.isMesh && !found) found = mesh;
+        if (!mesh.isMesh) return;
+        const geo = mesh.geometry.clone();
+        geo.applyMatrix4(mesh.matrixWorld);
+        parts.push(geo);
       });
-      if (!found) continue;
-      const mesh: THREE.Mesh = found;
-      const geo = mesh.geometry.clone();
-      // Bake the node transform so instancing works from the prop's ground origin.
-      const local = new THREE.Matrix4().copy(mesh.matrixWorld);
-      geo.applyMatrix4(local);
+      if (parts.length === 0) continue;
+      const geo = parts.length === 1 ? parts[0] : mergeGeometries(parts, false);
+      if (!geo) {
+        for (const part of parts) part.dispose();
+        continue;
+      }
+      for (const part of parts) {
+        if (part !== geo) part.dispose();
+      }
       geo.computeVertexNormals();
+      if (!geo.getAttribute("color") && geo.getAttribute("COLOR_0")) {
+        geo.setAttribute("color", geo.getAttribute("COLOR_0"));
+      }
       geo.computeBoundingBox();
       const minY = geo.boundingBox?.min.y ?? 0;
       if (minY !== 0) geo.translate(0, -minY, 0);
       geo.computeBoundingSphere();
       geo.userData.shared = true;
       this.props.set(root.name, geo);
+    }
+    if (import.meta.env.DEV) {
+      console.warn("[world3d] props", [...this.props.keys()].join(","));
     }
   }
 

@@ -10,12 +10,14 @@ import { ENEMY_TINT } from "./palette";
 const WALK_CLIPS = ["Walk", "Run", "Fast_Flying", "Walking_A"];
 const IDLE_CLIPS = ["Idle", "Flying_Idle"];
 const DEATH_CLIPS = ["Death", "Death_A"];
+const HIT_CLIPS = ["HitReact", "HitRecieve"];
 
 const DEATH_SECONDS = 1.15;
 const SINK_AFTER = 0.55;
 
 const _target = new THREE.Vector3();
 const _white = new THREE.Color(1, 1, 1);
+const _bodyTint = new THREE.Color();
 
 function findClip(clips: THREE.AnimationClip[], names: string[]): THREE.AnimationClip | null {
   for (const name of names) {
@@ -46,6 +48,8 @@ export class EnemyView {
   private walk: THREE.AnimationAction | null = null;
   private idle: THREE.AnimationAction | null = null;
   private death: THREE.AnimationAction | null = null;
+  private hit: THREE.AnimationAction | null = null;
+  private lastHitFlash = 0;
   private materials: THREE.MeshStandardMaterial[] = [];
   private hpFill: THREE.Object3D | null = null;
   private hpTrack: THREE.Object3D | null = null;
@@ -93,9 +97,10 @@ export class EnemyView {
       const cloned = mats.map((mat) => {
         const std = (mat as THREE.MeshStandardMaterial).clone();
         if (std.map) std.map.userData.shared = true;
-        std.color.setHex(tint.body);
+        // Keep the atlas. A light lerp toward the kind swatch separates the eight Enemies.
+        std.color.setHex(0xffffff).lerp(_bodyTint.setHex(tint.body), 0.22);
         std.emissive.setHex(tint.glow);
-        std.emissiveIntensity = 0.35;
+        std.emissiveIntensity = 0.28;
         if (this.enemy.kind === "shade") {
           std.transparent = true;
           std.opacity = 0.62;
@@ -111,9 +116,13 @@ export class EnemyView {
     this.body = clone;
     this.figure.add(this.body);
     this.mixer = new THREE.AnimationMixer(clone);
+    this.mixer.addEventListener("finished", (event) => {
+      if (event.action === this.hit) event.action.fadeOut(0.12);
+    });
     const walkClip = findClip(prefab.clips, WALK_CLIPS);
     const idleClip = findClip(prefab.clips, IDLE_CLIPS);
     const deathClip = findClip(prefab.clips, DEATH_CLIPS);
+    const hitClip = findClip(prefab.clips, HIT_CLIPS);
     if (walkClip) {
       this.walk = this.mixer.clipAction(walkClip);
       this.walk.play();
@@ -124,6 +133,11 @@ export class EnemyView {
       this.death = this.mixer.clipAction(deathClip);
       this.death.setLoop(THREE.LoopOnce, 1);
       this.death.clampWhenFinished = true;
+    }
+    if (hitClip) {
+      this.hit = this.mixer.clipAction(hitClip);
+      this.hit.setLoop(THREE.LoopOnce, 1);
+      this.hit.clampWhenFinished = true;
     }
     this.rigged = true;
     this.addHp(tint.height * 1.12 * this.enemy.scale);
@@ -164,6 +178,8 @@ export class EnemyView {
     this.walk = null;
     this.idle = null;
     this.death = null;
+    this.hit = null;
+    this.lastHitFlash = 0;
     if (this.rigged) {
       for (const mat of this.materials) mat.dispose();
       this.body.traverse((child) => {
@@ -211,6 +227,10 @@ export class EnemyView {
         const timeScale = THREE.MathUtils.clamp(pace / this.stride, 0.45, 3.4);
         this.walk.setEffectiveTimeScale(timeScale);
       }
+      if (this.hit && flash > 0.72 && this.lastHitFlash <= 0.72) {
+        this.hit.reset().setEffectiveTimeScale(1.5).play();
+      }
+      this.lastHitFlash = flash;
       this.mixer.update(simDt);
       const punch = flash > 0.6 ? 1 + (flash - 0.6) * 0.3 : 1;
       this.body.scale.set(scale * punch, scale * (2 - punch), scale * punch);
