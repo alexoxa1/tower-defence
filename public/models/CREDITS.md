@@ -11,7 +11,7 @@ All meshes under `public/models/` are CC0 1.0 (public domain). Attribution is no
 ## What is inside
 
 - `kenney/td.glb`: one scene, one shared palette texture. Root nodes are named after the kit files (`weapon-turret`, `tower-round-bottom-a`, `spawn-round`, ...). Towers are stacked from these parts by `src/game/world3d/assets.ts`; the palette is recolored to the Tower swatch at runtime.
-- `nature/props.glb`: 21 props (`rock_largeA`, `tree_pineTallA`, `plant_bush`, ...). Material colors were baked into vertex colors and each prop collapsed to one primitive so it can be drawn with `InstancedMesh`.
+- `nature/props.glb`: 20 props (`rock_largeA`, `tree_pineTallA`, `tree_oak_dark`, `plant_bushLarge`, ...). Each Kenney mesh has separate bark and leaf primitives; both are kept and their material colors are written into `COLOR_0` so InstancedMesh can draw a full tree, not a trunk. Trees are scaled to grove height (~2.8–4.6 world units); bushes and grass stay shorter (~0.55–1.2). Meshopt-compressed.
 - `quaternius/<Monster>.glb`: rigged Enemies with only `Walk`/`Run` (or `Fast_Flying`), `Idle`, `Death`, and `HitReact` clips kept. Creep Orc, Runner Ninja, Brute Yeti, Swarm GreenSpikyBlob, Warden Orc_Skull, Shade Ghost, Colossus Demon, Overlord BlueDemon.
 
 ## Pipeline
